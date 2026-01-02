@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { Layout } from './components/layout/Layout';
 import { AdminLayout } from './components/admin/AdminLayout';
@@ -34,7 +34,7 @@ import { AccessRequests } from './pages/admin/AccessRequests';
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
+      <HashRouter>
         <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<Home />} />
@@ -81,7 +81,7 @@ function App() {
             <Route path="settings" element={<Settings />} />
           </Route>
         </Routes>
-      </BrowserRouter>
+      </HashRouter>
     </AuthProvider>
   );
 }
