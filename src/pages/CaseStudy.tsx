@@ -248,6 +248,17 @@ function BlockRenderer({ block }: { block: ProjectBlock }) {
         </section>
       );
 
+    case 'custom_html':
+      return (
+        <section className="py-8 md:py-12">
+          <div className="container-grid">
+            <div 
+              dangerouslySetInnerHTML={{ __html: String(content.html || '') }} 
+            />
+          </div>
+        </section>
+      );
+
     default:
       return null;
   }
