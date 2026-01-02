@@ -12,6 +12,12 @@ import { Team } from './pages/Team';
 import { Insights } from './pages/Insights';
 import { InsightDetail } from './pages/InsightDetail';
 import { Contact } from './pages/Contact';
+import { Opportunities } from './pages/Opportunities';
+import { TalentPage } from './pages/Talent';
+import { OpportunitiesList } from './pages/admin/OpportunitiesList';
+import { OpportunityEditor } from './pages/admin/OpportunityEditor';
+import { ApplicationsList } from './pages/admin/ApplicationsList';
+import { TalentList } from './pages/admin/TalentList';
 import { Login } from './pages/admin/Login';
 import { Register } from './pages/admin/Register';
 import { Dashboard } from './pages/admin/Dashboard';
@@ -39,6 +45,8 @@ function App() {
             <Route path="/team" element={<Team />} />
             <Route path="/insights" element={<Insights />} />
             <Route path="/insights/:slug" element={<InsightDetail />} />
+            <Route path="/opportunities" element={<Opportunities />} />
+            <Route path="/talent" element={<TalentPage />} />
             <Route path="/contact" element={<Contact />} />
           </Route>
 
@@ -63,6 +71,11 @@ function App() {
             <Route path="insights" element={<InsightsList />} />
             <Route path="insights/new" element={<InsightEditor />} />
             <Route path="insights/:id" element={<InsightEditor />} />
+            <Route path="opportunities" element={<OpportunitiesList />} />
+            <Route path="opportunities/new" element={<OpportunityEditor />} />
+            <Route path="opportunities/:id" element={<OpportunityEditor />} />
+            <Route path="applications" element={<ApplicationsList />} />
+            <Route path="talent" element={<TalentList />} />
             <Route path="submissions" element={<ContactSubmissions />} />
             <Route path="access-requests" element={<AccessRequests />} />
             <Route path="settings" element={<Settings />} />

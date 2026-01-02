@@ -47,7 +47,7 @@ export type Project = {
 export type ProjectBlock = {
   id: string;
   project_id: string;
-  block_type: 'headline_text' | 'challenge_insight_solution' | 'single_image' | 'image_grid' | 'split_image_text' | 'quote' | 'statistics' | 'process_steps' | 'deliverables' | 'video' | 'gallery';
+  block_type: 'headline_text' | 'challenge_insight_solution' | 'single_image' | 'image_grid' | 'split_image_text' | 'quote' | 'statistics' | 'process_steps' | 'deliverables' | 'video' | 'gallery' | 'custom_html';
   content: Record<string, unknown>;
   sort_order: number;
   created_at: string;
@@ -143,5 +143,48 @@ export type AdminRequest = {
   reviewed_by: string | null;
   reviewed_at: string | null;
   denial_reason: string | null;
+  created_at: string;
+};
+
+export type Opportunity = {
+  id: string;
+  type: 'job' | 'contest';
+  title: string;
+  slug: string;
+  description: string;
+  requirements: string[];
+  location: string | null;
+  deadline: string | null;
+  status: 'open' | 'closed' | 'draft';
+  external_link: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Application = {
+  id: string;
+  opportunity_id: string;
+  user_id: string | null;
+  full_name: string;
+  email: string;
+  portfolio_link: string | null;
+  github_link: string | null;
+  resume_url: string | null;
+  message: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  created_at: string;
+};
+
+export type Talent = {
+  id: string;
+  user_id: string | null;
+  application_id: string | null;
+  name: string;
+  role: string;
+  bio: string | null;
+  avatar_url: string | null;
+  skills: string[];
+  portfolio_url: string | null;
+  is_visible: boolean;
   created_at: string;
 };

@@ -12,6 +12,9 @@ import {
   Mail,
   ChevronRight,
   UserCheck,
+  Trophy,
+  ClipboardList,
+  Star,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -20,6 +23,9 @@ const navItems = [
   { href: '/admin/projects', label: 'Projects', icon: Briefcase },
   { href: '/admin/team', label: 'Team', icon: Users },
   { href: '/admin/insights', label: 'Insights', icon: FileText },
+  { href: '/admin/opportunities', label: 'Opportunities', icon: Trophy },
+  { href: '/admin/applications', label: 'Applications', icon: ClipboardList },
+  { href: '/admin/talent', label: 'Talent Network', icon: Star },
   { href: '/admin/submissions', label: 'Submissions', icon: Mail },
   { href: '/admin/access-requests', label: 'Access Requests', icon: UserCheck },
   { href: '/admin/settings', label: 'Settings', icon: Settings },

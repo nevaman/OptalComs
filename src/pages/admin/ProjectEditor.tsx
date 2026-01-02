@@ -4,6 +4,7 @@ import { Save, Eye, EyeOff, ArrowLeft, Plus, Trash2, GripVertical } from 'lucide
 import { supabase, Project, ProjectBlock } from '../../lib/supabase';
 import { Input, Textarea, Select } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
+import { GalleryEditor } from '../../components/admin/GalleryEditor';
 
 const industries = [
   { value: '', label: 'Select industry' },
@@ -26,6 +27,8 @@ const blockTypes = [
   { value: 'statistics', label: 'Statistics' },
   { value: 'process_steps', label: 'Process Steps' },
   { value: 'deliverables', label: 'Deliverables List' },
+  { value: 'gallery', label: 'Image Gallery (Masonry)' },
+  { value: 'custom_html', label: 'Custom HTML' },
 ];
 
 export function ProjectEditor() {
@@ -742,6 +745,31 @@ function BlockEditor({
               ]}
             />
           </>
+        )}
+
+        {block.block_type === 'gallery' && (
+          <GalleryEditor 
+            images={(content.images as any[]) || []} 
+            onUpdate={(images) => onUpdate({ ...content, images })} 
+          />
+        )}
+
+        {block.block_type === 'custom_html' && (
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-neutral-mid uppercase tracking-wider">
+              Custom HTML Content
+            </label>
+            <Textarea
+              value={String(content.html || '')}
+              onChange={(e) => onUpdate({ ...content, html: e.target.value })}
+              placeholder="<div class='custom'>...</div>"
+              rows={10}
+              className="font-mono text-sm"
+            />
+            <p className="text-xs text-neutral-mid">
+              Warning: Custom HTML is rendered directly. Ensure it is safe and correctly formatted.
+            </p>
+          </div>
         )}
 
         {(block.block_type === 'image_grid' || block.block_type === 'statistics' || block.block_type === 'process_steps' || block.block_type === 'deliverables') && (

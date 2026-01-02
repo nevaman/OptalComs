@@ -227,18 +227,34 @@ function BlockRenderer({ block }: { block: ProjectBlock }) {
       return (
         <section className="py-8 md:py-12">
           <div className="container-grid">
-            <div className="space-y-4">
+            <div className="columns-1 md:columns-2 lg:columns-3 gap-4 space-y-4">
               {galleryImages.map((image, index) => (
-                <figure key={index}>
-                  <img src={image.url} alt={image.caption || ''} className="w-full" />
+                <figure key={index} className="break-inside-avoid mb-4">
+                  <img 
+                    src={image.url} 
+                    alt={image.caption || ''} 
+                    className="w-full h-auto rounded-sm hover:opacity-90 transition-opacity duration-300" 
+                    loading="lazy"
+                  />
                   {image.caption && (
-                    <figcaption className="text-sm text-neutral-mid mt-2">
+                    <figcaption className="text-xs text-neutral-mid mt-2 uppercase tracking-wider">
                       {image.caption}
                     </figcaption>
                   )}
                 </figure>
               ))}
             </div>
+          </div>
+        </section>
+      );
+
+    case 'custom_html':
+      return (
+        <section className="py-8 md:py-12">
+          <div className="container-grid">
+            <div 
+              dangerouslySetInnerHTML={{ __html: String(content.html || '') }} 
+            />
           </div>
         </section>
       );
