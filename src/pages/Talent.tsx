@@ -1,4 +1,4 @@
-import { useState, useRef, forwardRef, useEffect } from 'react';
+import { useState, useRef, forwardRef, useEffect, type ComponentType } from 'react';
 import {
   ArrowRight,
   Clock,
@@ -18,30 +18,7 @@ import {
   Sparkles,
   Check,
 } from 'lucide-react';
-
-export interface TalentOffering {
-  id: string;
-  title: string;
-  description: string;
-  icon: string;
-  skills: string[];
-  tools: string[];
-  order: number;
-  is_active: boolean;
-}
-
-export interface PricingTier {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  price_suffix: string;
-  features: string[];
-  is_popular: boolean;
-  cta_text: string;
-  order: number;
-  is_active: boolean;
-}
+import { supabase, type TalentOffering, type TalentPricingTier } from '../lib/supabase';
 
 export interface HeroContent {
   badge_text: string;
@@ -56,7 +33,7 @@ export interface Stat {
   id: string;
   value: string;
   label: string;
-  order: number;
+  sort_order: number;
 }
 
 export interface VettingStep {
@@ -64,7 +41,7 @@ export interface VettingStep {
   stage: string;
   percentage: number;
   description: string;
-  order: number;
+  sort_order: number;
 }
 
 export interface ProcessStep {
@@ -72,10 +49,17 @@ export interface ProcessStep {
   number: string;
   title: string;
   description: string;
-  order: number;
+  sort_order: number;
 }
 
-const mockHeroContent: HeroContent = {
+type TalentPageContentSetting = {
+  hero?: HeroContent;
+  stats?: Stat[];
+  vetting_steps?: VettingStep[];
+  process_steps?: ProcessStep[];
+};
+
+const fallbackHeroContent: HeroContent = {
   badge_text: 'Trusted by 50+ growing companies',
   headline: 'Easiest way to hire',
   headline_accent: 'elite creative talent.',
@@ -84,164 +68,41 @@ const mockHeroContent: HeroContent = {
   cta_secondary: 'See How It Works',
 };
 
-const mockTalentOfferings: TalentOffering[] = [
-  {
-    id: '1',
-    title: 'Graphic Designers',
-    description: 'Expert visual designers who create stunning brand assets, marketing materials, and digital graphics.',
-    icon: 'palette',
-    skills: ['Brand Design', 'Print Design', 'Digital Graphics', 'Layout Design'],
-    tools: ['Figma', 'Photoshop', 'Illustrator', 'InDesign'],
-    order: 1,
-    is_active: true,
-  },
-  {
-    id: '2',
-    title: 'UI/UX Designers',
-    description: 'User-centered designers who craft intuitive interfaces and seamless digital experiences.',
-    icon: 'pen-tool',
-    skills: ['User Research', 'Wireframing', 'Prototyping', 'Design Systems'],
-    tools: ['Figma', 'Sketch', 'Adobe XD', 'Framer'],
-    order: 2,
-    is_active: true,
-  },
-  {
-    id: '3',
-    title: 'Motion Designers',
-    description: 'Creative animators who bring brands to life through captivating motion graphics and animations.',
-    icon: 'sparkles',
-    skills: ['2D Animation', '3D Animation', 'Motion Graphics', 'Visual Effects'],
-    tools: ['After Effects', 'Cinema 4D', 'Blender', 'Premiere Pro'],
-    order: 3,
-    is_active: true,
-  },
-  {
-    id: '4',
-    title: 'Video Editors',
-    description: 'Skilled editors who transform raw footage into polished, engaging video content.',
-    icon: 'video',
-    skills: ['Video Editing', 'Color Grading', 'Sound Design', 'Storytelling'],
-    tools: ['Premiere Pro', 'Final Cut Pro', 'DaVinci Resolve', 'After Effects'],
-    order: 4,
-    is_active: true,
-  },
-  {
-    id: '5',
-    title: 'Frontend Developers',
-    description: 'Technical experts who build responsive, performant, and accessible web interfaces.',
-    icon: 'code',
-    skills: ['React', 'TypeScript', 'CSS/Tailwind', 'Performance'],
-    tools: ['VS Code', 'Git', 'Figma', 'Chrome DevTools'],
-    order: 5,
-    is_active: true,
-  },
-  {
-    id: '6',
-    title: 'Full Stack Developers',
-    description: 'Versatile engineers who handle both frontend and backend development with expertise.',
-    icon: 'box',
-    skills: ['Frontend', 'Backend', 'Databases', 'DevOps'],
-    tools: ['React', 'Node.js', 'PostgreSQL', 'AWS'],
-    order: 6,
-    is_active: true,
-  },
+const fallbackStats: Stat[] = [
+  { id: '1', value: '3%', label: 'Acceptance rate for Optal talent', sort_order: 1 },
+  { id: '2', value: '70%', label: 'Average savings on salaries', sort_order: 2 },
+  { id: '3', value: '14d', label: 'Avg time to placement', sort_order: 3 },
 ];
 
-const mockPricingTiers: PricingTier[] = [
-  {
-    id: '1',
-    name: 'Starter',
-    description: 'Perfect for small teams getting started with offshore talent.',
-    price: 2000,
-    price_suffix: '/month',
-    features: [
-      'Part-time dedicated talent (20 hrs/week)',
-      'Pre-vetted professionals',
-      'Basic project management',
-      'Weekly check-ins',
-      'Email support',
-    ],
-    is_popular: false,
-    cta_text: 'Get Started',
-    order: 1,
-    is_active: true,
-  },
-  {
-    id: '2',
-    name: 'Professional',
-    description: 'Full-time embedded talent for growing teams.',
-    price: 3500,
-    price_suffix: '/month',
-    features: [
-      'Full-time dedicated talent (40 hrs/week)',
-      'Top 3% pre-vetted professionals',
-      'Dedicated account manager',
-      'Performance tracking & reporting',
-      'Slack/Teams integration',
-      'Priority support',
-    ],
-    is_popular: true,
-    cta_text: 'Start Hiring',
-    order: 2,
-    is_active: true,
-  },
-  {
-    id: '3',
-    name: 'Enterprise',
-    description: 'Custom solutions for scaling organizations.',
-    price: 0,
-    price_suffix: '',
-    features: [
-      'Multiple dedicated team members',
-      'Custom vetting requirements',
-      'Dedicated success team',
-      'Custom integrations',
-      'SLA guarantees',
-      'Quarterly business reviews',
-      'Volume discounts',
-    ],
-    is_popular: false,
-    cta_text: 'Contact Sales',
-    order: 3,
-    is_active: true,
-  },
+const fallbackVettingSteps: VettingStep[] = [
+  { id: '1', stage: 'Initial Screening', percentage: 40, description: 'Portfolio & experience review', sort_order: 1 },
+  { id: '2', stage: 'Soft Skills & English', percentage: 18, description: 'Communication assessment', sort_order: 2 },
+  { id: '3', stage: 'Technical Interviews', percentage: 10, description: 'Domain expertise evaluation', sort_order: 3 },
+  { id: '4', stage: 'Real-world Projects', percentage: 5, description: 'Practical skill demonstration', sort_order: 4 },
+  { id: '5', stage: 'Final Interviews', percentage: 3, description: 'Culture & fit assessment', sort_order: 5 },
 ];
 
-const mockStats: Stat[] = [
-  { id: '1', value: '3%', label: 'Acceptance rate for Optal talent', order: 1 },
-  { id: '2', value: '70%', label: 'Average savings on salaries', order: 2 },
-  { id: '3', value: '14d', label: 'Avg time to placement', order: 3 },
-];
-
-const mockVettingSteps: VettingStep[] = [
-  { id: '1', stage: 'Initial Screening', percentage: 40, description: 'Portfolio & experience review', order: 1 },
-  { id: '2', stage: 'Soft Skills & English', percentage: 18, description: 'Communication assessment', order: 2 },
-  { id: '3', stage: 'Technical Interviews', percentage: 10, description: 'Domain expertise evaluation', order: 3 },
-  { id: '4', stage: 'Real-world Projects', percentage: 5, description: 'Practical skill demonstration', order: 4 },
-  { id: '5', stage: 'Final Interviews', percentage: 3, description: 'Culture & fit assessment', order: 5 },
-];
-
-const mockProcessSteps: ProcessStep[] = [
+const fallbackProcessSteps: ProcessStep[] = [
   {
     id: '1',
     number: '01',
     title: 'Discovery Call',
     description: 'We work to understand your hiring goals and identify where your team needs the most support. Together we outline a plan for embedded talent, placement timeline, and your needs for a perfect fit.',
-    order: 1,
+    sort_order: 1,
   },
   {
     id: '2',
     number: '02',
     title: 'Training & Selection',
     description: 'Optal selects and shares the perfect fit from our pool of pre-vetted candidates. We then begin their training process to ensure they are ready to embed with your team seamlessly.',
-    order: 2,
+    sort_order: 2,
   },
   {
     id: '3',
     number: '03',
     title: 'Kickoff & Placement',
     description: 'We introduce you to your talent, ensure everyone is set up for success, and kick off the engagement. Your Account Manager will check in frequently during the first 60 days.',
-    order: 3,
+    sort_order: 3,
   },
 ];
 
@@ -268,7 +129,7 @@ const advantages = [
   },
 ];
 
-const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+const iconMap: Record<string, ComponentType<{ className?: string }>> = {
   'palette': Palette,
   'pen-tool': PenTool,
   'sparkles': Sparkles,
@@ -280,12 +141,12 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
 };
 
 export function TalentPage() {
-  const [heroContent] = useState<HeroContent>(mockHeroContent);
-  const [talentOfferings] = useState<TalentOffering[]>(mockTalentOfferings);
-  const [pricingTiers] = useState<PricingTier[]>(mockPricingTiers);
-  const [stats] = useState<Stat[]>(mockStats);
-  const [vettingSteps] = useState<VettingStep[]>(mockVettingSteps);
-  const [processSteps] = useState<ProcessStep[]>(mockProcessSteps);
+  const [heroContent, setHeroContent] = useState<HeroContent>(fallbackHeroContent);
+  const [talentOfferings, setTalentOfferings] = useState<TalentOffering[]>([]);
+  const [pricingTiers, setPricingTiers] = useState<TalentPricingTier[]>([]);
+  const [stats, setStats] = useState<Stat[]>(fallbackStats);
+  const [vettingSteps, setVettingSteps] = useState<VettingStep[]>(fallbackVettingSteps);
+  const [processSteps, setProcessSteps] = useState<ProcessStep[]>(fallbackProcessSteps);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -298,7 +159,45 @@ export function TalentPage() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const formRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    loadTalentContent();
+  }, []);
+
+  const loadTalentContent = async () => {
+    setIsLoading(true);
+    setLoadError(null);
+
+    const [settingsResult, offeringsResult, pricingResult] = await Promise.all([
+      supabase.from('global_settings').select('value').eq('key', 'talent_page_content'),
+      supabase.from('talent_offerings').select('*').eq('is_active', true).order('sort_order', { ascending: true }),
+      supabase.from('talent_pricing_tiers').select('*').eq('is_active', true).order('sort_order', { ascending: true }),
+    ]);
+
+    const settingsValue = settingsResult.data?.[0]?.value as TalentPageContentSetting | undefined;
+    if (settingsValue?.hero) setHeroContent(settingsValue.hero);
+    if (settingsValue?.stats) setStats(settingsValue.stats);
+    if (settingsValue?.vetting_steps) setVettingSteps(settingsValue.vetting_steps);
+    if (settingsValue?.process_steps) setProcessSteps(settingsValue.process_steps);
+
+    if (!offeringsResult.error && offeringsResult.data) {
+      setTalentOfferings(offeringsResult.data);
+    } else if (offeringsResult.error) {
+      setLoadError('Unable to load talent offerings right now.');
+    }
+
+    if (!pricingResult.error && pricingResult.data) {
+      setPricingTiers(pricingResult.data);
+    } else if (pricingResult.error) {
+      setLoadError('Unable to load pricing tiers right now.');
+    }
+
+    setIsLoading(false);
+  };
 
   const scrollToForm = () => {
     formRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -307,19 +206,57 @@ export function TalentPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    setSubmitError(null);
+
+    const { error } = await supabase.from('hiring_requests').insert([{
+      name: formData.name,
+      email: formData.email,
+      company: formData.company,
+      role: formData.role,
+      team_size: formData.teamSize,
+      budget: formData.budget,
+      message: formData.message,
+    }]);
+
+    if (error) {
+      setSubmitError('Something went wrong while submitting your request. Please try again.');
+    } else {
+      setIsSubmitted(true);
+      setFormData({
+        name: '',
+        email: '',
+        company: '',
+        role: '',
+        teamSize: '',
+        budget: '',
+        message: '',
+      });
+    }
+
     setIsSubmitting(false);
-    setIsSubmitted(true);
   };
 
-  const activeOfferings = talentOfferings.filter(o => o.is_active).sort((a, b) => a.order - b.order);
-  const activePricingTiers = pricingTiers.filter(p => p.is_active).sort((a, b) => a.order - b.order);
-  const activeStats = stats.sort((a, b) => a.order - b.order);
-  const activeVettingSteps = vettingSteps.sort((a, b) => a.order - b.order);
-  const activeProcessSteps = processSteps.sort((a, b) => a.order - b.order);
+  const activeOfferings = talentOfferings.filter(o => o.is_active).sort((a, b) => a.sort_order - b.sort_order);
+  const activePricingTiers = pricingTiers.filter(p => p.is_active).sort((a, b) => a.sort_order - b.sort_order);
+  const activeStats = [...stats].sort((a, b) => a.sort_order - b.sort_order);
+  const activeVettingSteps = [...vettingSteps].sort((a, b) => a.sort_order - b.sort_order);
+  const activeProcessSteps = [...processSteps].sort((a, b) => a.sort_order - b.sort_order);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-neutral-mid">
+        Loading talent experience...
+      </div>
+    );
+  }
 
   return (
     <div className="overflow-hidden">
+      {loadError && (
+        <div className="bg-red-50 text-red-700 border border-red-100 px-4 py-3 text-sm text-center">
+          {loadError}
+        </div>
+      )}
       <HeroSection content={heroContent} onCtaClick={scrollToForm} />
       <TalentOfferingsSection offerings={activeOfferings} />
       <AdvantagesSection />
@@ -335,6 +272,7 @@ export function TalentPage() {
         isSubmitted={isSubmitted}
         onSubmit={handleSubmit}
         offerings={activeOfferings}
+        submitError={submitError}
       />
     </div>
   );
@@ -444,7 +382,7 @@ function TalentOfferingsSection({ offerings }: { offerings: TalentOffering[] }) 
                   <IconComponent className="w-7 h-7 text-orange" />
                 </div>
                 <h3 className="text-xl font-display font-bold mb-3">{offering.title}</h3>
-                <p className="text-surface/70 text-sm leading-relaxed mb-6">{offering.description}</p>
+                <p className="text-surface/70 text-sm leading-relaxed mb-6">{offering.description || ''}</p>
 
                 <div className="space-y-4">
                   <div>
@@ -653,7 +591,7 @@ function PricingSection({ tiers, onCtaClick }: { tiers: PricingTier[]; onCtaClic
 
               <div className={`p-8 ${tier.is_popular ? 'pt-12' : ''}`}>
                 <h3 className="text-2xl font-display font-bold mb-2">{tier.name}</h3>
-                <p className="text-neutral-mid text-sm mb-6">{tier.description}</p>
+                <p className="text-neutral-mid text-sm mb-6">{tier.description || ''}</p>
 
                 <div className="mb-8">
                   {tier.price > 0 ? (
@@ -723,10 +661,11 @@ interface FormSectionProps {
   isSubmitted: boolean;
   onSubmit: (e: React.FormEvent) => void;
   offerings: TalentOffering[];
+  submitError: string | null;
 }
 
 const FormSection = forwardRef<HTMLDivElement, FormSectionProps>(
-  ({ formData, setFormData, isSubmitting, isSubmitted, onSubmit, offerings }, ref) => {
+  ({ formData, setFormData, isSubmitting, isSubmitted, onSubmit, offerings, submitError }, ref) => {
     return (
       <section ref={ref} id="hire-form" className="section-padding">
         <div className="container-grid">
@@ -752,6 +691,11 @@ const FormSection = forwardRef<HTMLDivElement, FormSectionProps>(
               </div>
             ) : (
               <form onSubmit={onSubmit} className="bg-surface border border-neutral-light p-8 md:p-12">
+                {submitError && (
+                  <div className="mb-6 p-4 border border-red-100 bg-red-50 text-red-700 text-sm rounded">
+                    {submitError}
+                  </div>
+                )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                   <div>
                     <label className="block text-sm font-medium mb-2">Full Name *</label>

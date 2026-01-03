@@ -188,3 +188,46 @@ export type Talent = {
   is_visible: boolean;
   created_at: string;
 };
+
+export type TalentOffering = {
+  id: string;
+  title: string;
+  description: string | null;
+  icon: string;
+  skills: string[];
+  tools: string[];
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type TalentPricingTier = {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  price_suffix: string;
+  features: string[];
+  is_popular: boolean;
+  cta_text: string;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type HiringRequest = {
+  id: string;
+  name: string;
+  email: string;
+  company: string | null;
+  role: string | null;
+  team_size: string | null;
+  budget: string | null;
+  message: string | null;
+  status: 'new' | 'contacted' | 'in_progress' | 'closed' | 'archived';
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
