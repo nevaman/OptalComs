@@ -18,6 +18,8 @@ import { OpportunitiesList } from './pages/admin/OpportunitiesList';
 import { OpportunityEditor } from './pages/admin/OpportunityEditor';
 import { ApplicationsList } from './pages/admin/ApplicationsList';
 import { TalentList } from './pages/admin/TalentList';
+import { TalentPageSettings } from './pages/admin/TalentPageSettings';
+import { HiringRequests } from './pages/admin/HiringRequests';
 import { Login } from './pages/admin/Login';
 import { Register } from './pages/admin/Register';
 import { Dashboard } from './pages/admin/Dashboard';
@@ -76,6 +78,8 @@ function App() {
             <Route path="opportunities/:id" element={<OpportunityEditor />} />
             <Route path="applications" element={<ApplicationsList />} />
             <Route path="talent" element={<TalentList />} />
+            <Route path="talent-settings" element={<TalentPageSettings />} />
+            <Route path="hiring-requests" element={<HiringRequests />} />
             <Route path="submissions" element={<ContactSubmissions />} />
             <Route path="access-requests" element={<AccessRequests />} />
             <Route path="settings" element={<Settings />} />
