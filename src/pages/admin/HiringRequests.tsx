@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Search,
   Filter,
@@ -20,101 +20,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { format } from 'date-fns';
-
-export interface HiringRequest {
-  id: string;
-  name: string;
-  email: string;
-  company: string;
-  role: string;
-  team_size: string;
-  budget: string;
-  message: string;
-  status: 'new' | 'contacted' | 'in_progress' | 'closed' | 'archived';
-  created_at: string;
-  notes: string;
-}
-
-const mockHiringRequests: HiringRequest[] = [
-  {
-    id: '1',
-    name: 'Sarah Johnson',
-    email: 'sarah@techstartup.io',
-    company: 'TechStartup Inc',
-    role: 'UI/UX Designers',
-    team_size: '11-50',
-    budget: '3500-5000',
-    message: 'We are looking for a senior UI/UX designer to help us redesign our SaaS platform. The ideal candidate should have experience with B2B products and design systems.',
-    status: 'new',
-    created_at: '2026-01-03T10:30:00Z',
-    notes: '',
-  },
-  {
-    id: '2',
-    name: 'Michael Chen',
-    email: 'mchen@growthco.com',
-    company: 'GrowthCo',
-    role: 'Frontend Developers',
-    team_size: '51-200',
-    budget: '5000-10000',
-    message: 'Need 2 frontend developers proficient in React and TypeScript. Must have experience with large-scale applications and performance optimization.',
-    status: 'contacted',
-    created_at: '2026-01-02T14:15:00Z',
-    notes: 'Called on Jan 2, scheduled discovery call for Jan 5',
-  },
-  {
-    id: '3',
-    name: 'Emily Rodriguez',
-    email: 'emily@creativebrand.co',
-    company: 'Creative Brand Co',
-    role: 'Motion Designers',
-    team_size: '1-10',
-    budget: '2000-3500',
-    message: 'Looking for a motion designer to create animated content for our social media channels. Experience with After Effects and social media formats required.',
-    status: 'in_progress',
-    created_at: '2025-12-28T09:00:00Z',
-    notes: 'Sent 3 candidate profiles on Dec 30. Waiting for feedback.',
-  },
-  {
-    id: '4',
-    name: 'David Park',
-    email: 'dpark@enterprise.com',
-    company: 'Enterprise Solutions Ltd',
-    role: 'Full Stack Developers',
-    team_size: '201-500',
-    budget: '10000+',
-    message: 'Enterprise looking for a team of 3-4 full stack developers for a 6-month project. Must have experience with Node.js, React, and PostgreSQL.',
-    status: 'in_progress',
-    created_at: '2025-12-20T11:45:00Z',
-    notes: 'High priority client. Placed 2 developers, 1 more pending.',
-  },
-  {
-    id: '5',
-    name: 'Lisa Thompson',
-    email: 'lisa@boutique.agency',
-    company: 'Boutique Agency',
-    role: 'Graphic Designers',
-    team_size: '1-10',
-    budget: 'under-2000',
-    message: 'Small agency looking for part-time graphic designer support for client work.',
-    status: 'closed',
-    created_at: '2025-12-15T16:20:00Z',
-    notes: 'Budget too low for our services. Referred to freelance platform.',
-  },
-  {
-    id: '6',
-    name: 'James Wilson',
-    email: 'jwilson@mediagroup.net',
-    company: 'Media Group Network',
-    role: 'Video Editors',
-    team_size: '51-200',
-    budget: '3500-5000',
-    message: 'Need a video editor for ongoing YouTube content production. Must be skilled in Premiere Pro and After Effects.',
-    status: 'contacted',
-    created_at: '2026-01-01T08:30:00Z',
-    notes: 'Discovery call completed. Sending candidate profiles this week.',
-  },
-];
+import { supabase, type HiringRequest } from '../../lib/supabase';
 
 const statusConfig = {
   new: { label: 'New', color: 'bg-blue-100 text-blue-700', icon: Clock },
@@ -133,44 +39,86 @@ const budgetLabels: Record<string, string> = {
 };
 
 export function HiringRequests() {
-  const [requests, setRequests] = useState<HiringRequest[]>(mockHiringRequests);
+  const [requests, setRequests] = useState<HiringRequest[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedRequest, setSelectedRequest] = useState<HiringRequest | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchRequests();
+  }, []);
+
+  const fetchRequests = async () => {
+    setIsLoading(true);
+    const { data, error } = await supabase
+      .from('hiring_requests')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (!error && data) {
+      setRequests(data);
+      if (selectedRequest) {
+        const updatedSelection = data.find((req) => req.id === selectedRequest.id);
+        if (updatedSelection) setSelectedRequest(updatedSelection);
+      }
+    }
+    setIsLoading(false);
+  };
 
   const filteredRequests = requests.filter((request) => {
     const matchesSearch =
       searchQuery === '' ||
-      request.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      request.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      request.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      request.role.toLowerCase().includes(searchQuery.toLowerCase());
+      [request.name, request.company, request.email, request.role]
+        .filter(Boolean)
+        .some((field) => field!.toLowerCase().includes(searchQuery.toLowerCase()));
 
     const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
 
     return matchesSearch && matchesStatus;
   });
 
-  const updateStatus = (id: string, status: HiringRequest['status']) => {
-    setRequests(prev => prev.map(r => r.id === id ? { ...r, status } : r));
-    if (selectedRequest?.id === id) {
-      setSelectedRequest({ ...selectedRequest, status });
-    }
-  };
+  const updateStatus = async (id: string, status: HiringRequest['status']) => {
+    const { data, error } = await supabase
+      .from('hiring_requests')
+      .update({ status })
+      .eq('id', id)
+      .select()
+      .single();
 
-  const updateNotes = (id: string, notes: string) => {
-    setRequests(prev => prev.map(r => r.id === id ? { ...r, notes } : r));
-    if (selectedRequest?.id === id) {
-      setSelectedRequest({ ...selectedRequest, notes });
-    }
-  };
-
-  const deleteRequest = (id: string) => {
-    if (confirm('Are you sure you want to delete this hiring request?')) {
-      setRequests(prev => prev.filter(r => r.id !== id));
+    if (!error && data) {
+      setRequests(prev => prev.map(r => r.id === id ? data : r));
       if (selectedRequest?.id === id) {
-        setSelectedRequest(null);
+        setSelectedRequest(data);
+      }
+    }
+  };
+
+  const updateNotes = async (id: string, notes: string) => {
+    const { data, error } = await supabase
+      .from('hiring_requests')
+      .update({ notes })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (!error && data) {
+      setRequests(prev => prev.map(r => r.id === id ? data : r));
+      if (selectedRequest?.id === id) {
+        setSelectedRequest(data);
+      }
+    }
+  };
+
+  const deleteRequest = async (id: string) => {
+    if (confirm('Are you sure you want to delete this hiring request?')) {
+      const { error } = await supabase.from('hiring_requests').delete().eq('id', id);
+      if (!error) {
+        setRequests(prev => prev.filter(r => r.id !== id));
+        if (selectedRequest?.id === id) {
+          setSelectedRequest(null);
+        }
       }
     }
   };
@@ -237,9 +185,11 @@ export function HiringRequests() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <div className="bg-surface rounded border border-neutral-light overflow-hidden">
-            {filteredRequests.length > 0 ? (
+            {isLoading ? (
+              <div className="p-8 text-center animate-pulse text-neutral-mid">Loading requests...</div>
+            ) : filteredRequests.length > 0 ? (
               <div className="divide-y divide-neutral-light">
-                {filteredRequests.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map((request) => {
+                {[...filteredRequests].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map((request) => {
                   const StatusIcon = statusConfig[request.status].icon;
                   return (
                     <div
@@ -259,9 +209,9 @@ export function HiringRequests() {
                             </span>
                           </div>
                           <p className="text-sm text-neutral-mid mb-2">
-                            {request.company} • Looking for {request.role}
+                            {request.company || 'Unknown company'} • Looking for {request.role || 'Role not provided'}
                           </p>
-                          <p className="text-sm text-neutral-mid line-clamp-2">{request.message}</p>
+                          <p className="text-sm text-neutral-mid line-clamp-2">{request.message || 'No message provided'}</p>
                         </div>
                         <div className="text-right shrink-0">
                           <p className="text-xs text-neutral-mid">
@@ -319,7 +269,7 @@ function RequestDetail({
   onDelete: (id: string) => void;
   onClose: () => void;
 }) {
-  const [notes, setNotes] = useState(request.notes);
+  const [notes, setNotes] = useState(request.notes || '');
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
 
   const StatusIcon = statusConfig[request.status].icon;
@@ -342,7 +292,7 @@ function RequestDetail({
       <div className="p-4 space-y-4">
         <div>
           <h4 className="font-medium text-lg">{request.name}</h4>
-          <p className="text-sm text-neutral-mid">{request.company}</p>
+          <p className="text-sm text-neutral-mid">{request.company || 'Company not provided'}</p>
         </div>
 
         <div className="relative">
@@ -390,11 +340,11 @@ function RequestDetail({
           </div>
           <div className="flex items-center gap-3">
             <Building2 className="w-4 h-4 text-neutral-mid" />
-            <span>{request.company}</span>
+            <span>{request.company || 'Company not provided'}</span>
           </div>
           <div className="flex items-center gap-3">
             <Users className="w-4 h-4 text-neutral-mid" />
-            <span>{request.team_size} employees</span>
+            <span>{request.team_size ? `${request.team_size} employees` : 'Team size not provided'}</span>
           </div>
           <div className="flex items-center gap-3">
             <DollarSign className="w-4 h-4 text-neutral-mid" />
@@ -409,7 +359,7 @@ function RequestDetail({
         <div>
           <p className="text-xs font-medium text-neutral-mid uppercase tracking-wider mb-2">Role Requested</p>
           <span className="inline-block px-3 py-1 bg-orange/10 text-orange rounded-full text-sm font-medium">
-            {request.role}
+            {request.role || 'Not specified'}
           </span>
         </div>
 
