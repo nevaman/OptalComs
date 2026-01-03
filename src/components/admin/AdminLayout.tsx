@@ -15,6 +15,8 @@ import {
   Trophy,
   ClipboardList,
   Star,
+  Sliders,
+  Inbox,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -26,6 +28,8 @@ const navItems = [
   { href: '/admin/opportunities', label: 'Opportunities', icon: Trophy },
   { href: '/admin/applications', label: 'Applications', icon: ClipboardList },
   { href: '/admin/talent', label: 'Talent Network', icon: Star },
+  { href: '/admin/talent-settings', label: 'Talent Page', icon: Sliders },
+  { href: '/admin/hiring-requests', label: 'Hiring Requests', icon: Inbox },
   { href: '/admin/submissions', label: 'Submissions', icon: Mail },
   { href: '/admin/access-requests', label: 'Access Requests', icon: UserCheck },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
