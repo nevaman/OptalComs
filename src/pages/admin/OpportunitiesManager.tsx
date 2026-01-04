@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { format } from 'date-fns';
-import { opportunitiesStore } from '../../lib/opportunitiesStore';
+import { supabase, Opportunity } from '../../lib/supabase';
 import type { CareerListing } from '../../components/opportunities/CareersTab';
 import type { Contest } from '../../components/opportunities/ContestsTab';
 import type { Grant } from '../../components/opportunities/GrantsTab';
@@ -32,26 +32,114 @@ type TabType = 'careers' | 'contests' | 'grants';
 
 export function OpportunitiesManager() {
   const [activeTab, setActiveTab] = useState<TabType>('careers');
-  const [careers, setCareers] = useState<CareerListing[]>([]);
-  const [contests, setContests] = useState<Contest[]>([]);
-  const [grants, setGrants] = useState<Grant[]>([]);
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  
   const [editingCareer, setEditingCareer] = useState<CareerListing | null>(null);
   const [editingContest, setEditingContest] = useState<Contest | null>(null);
   const [editingGrant, setEditingGrant] = useState<Grant | null>(null);
   const [isAdding, setIsAdding] = useState(false);
 
   useEffect(() => {
-    loadData();
-    const unsubscribe = opportunitiesStore.subscribe(loadData);
-    return unsubscribe;
+    fetchOpportunities();
   }, []);
 
-  function loadData() {
-    setCareers(opportunitiesStore.getCareers());
-    setContests(opportunitiesStore.getContests());
-    setGrants(opportunitiesStore.getGrants());
+  async function fetchOpportunities() {
+    setIsLoading(true);
+    const { data, error } = await supabase
+      .from('opportunities')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching opportunities:', error);
+    } else {
+      setOpportunities(data || []);
+    }
+    setIsLoading(false);
   }
+
+  // Helper mapping functions (Opportunity -> UI Type)
+  const mapToCareer = (op: Opportunity): CareerListing => {
+    const meta = (op.metadata || {}) as any;
+    return {
+      id: op.id,
+      title: op.title,
+      company: meta.company || 'Optal Creative',
+      company_logo: meta.company_logo,
+      location: op.location || 'Remote',
+      type: meta.employment_type || 'full-time',
+      experience_level: meta.experience_level || 'mid',
+      salary_range: meta.salary_range,
+      description: op.description,
+      requirements: op.requirements || [],
+      benefits: meta.benefits || [],
+      is_internal: meta.is_internal ?? !op.external_link,
+      external_link: op.external_link || undefined,
+      deadline: op.deadline || undefined,
+      posted_at: op.created_at,
+      is_featured: op.is_featured,
+      category: meta.category || 'General',
+    };
+  };
+
+  const mapToContest = (op: Opportunity): Contest => {
+    const meta = (op.metadata || {}) as any;
+    return {
+      id: op.id,
+      title: op.title,
+      slug: op.slug,
+      category: meta.category || 'General',
+      description: op.description,
+      requirements: op.requirements || [],
+      status: (op.status === 'closed' ? 'completed' : op.status) as any,
+      start_date: meta.start_date,
+      end_date: op.deadline || meta.end_date,
+      results_date: meta.results_date,
+      featured_image: meta.featured_image,
+      is_featured: op.is_featured,
+      external_link: op.external_link || undefined,
+      telegram_channel: meta.telegram_channel,
+      prizes: meta.prizes || [],
+      judges: meta.judges || [],
+      submission_guidelines: meta.submission_guidelines || [],
+      eligibility: meta.eligibility || [],
+      sponsors: meta.sponsors || [],
+      timeline: meta.timeline || [],
+      entry_count: meta.entry_count || 0,
+      brief: meta.brief,
+    };
+  };
+
+  const mapToGrant = (op: Opportunity): Grant => {
+    const meta = (op.metadata || {}) as any;
+    return {
+      id: op.id,
+      title: op.title,
+      organization: meta.organization || 'Optal Communications',
+      organization_logo: meta.organization_logo,
+      amount_min: meta.amount_min,
+      amount_max: meta.amount_max,
+      description: op.description,
+      focus_areas: meta.focus_areas || [],
+      eligibility: meta.eligibility || [],
+      requirements: op.requirements || [],
+      application_process: meta.application_process || [],
+      deadline: op.deadline || undefined,
+      status: op.status === 'closed' ? 'closed' : 'open', // Map Supabase status to UI status
+      external_link: op.external_link || undefined,
+      is_featured: op.is_featured,
+      category: meta.category || 'General',
+      funding_type: meta.funding_type || 'grant',
+      posted_at: op.created_at,
+    };
+  };
+
+  // Derived state
+  const careers = opportunities.filter(op => op.type === 'job').map(mapToCareer);
+  const contests = opportunities.filter(op => op.type === 'contest').map(mapToContest);
+  const grants = opportunities.filter(op => op.type === 'grant').map(mapToGrant);
 
   const tabs = [
     { id: 'careers' as TabType, label: 'Careers', icon: Briefcase, count: careers.length },
@@ -59,43 +147,106 @@ export function OpportunitiesManager() {
     { id: 'grants' as TabType, label: 'Grants', icon: Coins, count: grants.length },
   ];
 
-  const deleteCareer = (id: string) => {
-    if (confirm('Delete this job listing?')) {
-      opportunitiesStore.deleteCareer(id);
+  // CRUD Operations
+  const deleteOpportunity = async (id: string) => {
+    if (confirm('Are you sure you want to delete this item?')) {
+      const { error } = await supabase.from('opportunities').delete().eq('id', id);
+      if (error) {
+        alert('Error deleting: ' + error.message);
+      } else {
+        fetchOpportunities();
+      }
     }
   };
 
-  const deleteContest = (id: string) => {
-    if (confirm('Delete this contest?')) {
-      opportunitiesStore.deleteContest(id);
-    }
+  const toggleFeatured = async (id: string, currentFeatured: boolean) => {
+    const { error } = await supabase.from('opportunities').update({ is_featured: !currentFeatured }).eq('id', id);
+    if (!error) fetchOpportunities();
   };
 
-  const deleteGrant = (id: string) => {
-    if (confirm('Delete this grant?')) {
-      opportunitiesStore.deleteGrant(id);
-    }
-  };
+  const handleSave = async (data: any, type: TabType) => {
+    // Transform UI object back to Supabase Opportunity structure
+    const baseOpportunity: Partial<Opportunity> = {
+      type: type === 'careers' ? 'job' : type === 'contests' ? 'contest' : 'grant',
+      title: data.title,
+      description: data.description,
+      requirements: data.requirements,
+      is_featured: data.is_featured,
+      external_link: data.external_link || null,
+    };
 
-  const toggleCareerFeatured = (id: string) => {
-    const career = careers.find((c) => c.id === id);
-    if (career) {
-      opportunitiesStore.updateCareer(id, { is_featured: !career.is_featured });
-    }
-  };
+    let metadata: any = {};
 
-  const toggleContestFeatured = (id: string) => {
-    const contest = contests.find((c) => c.id === id);
-    if (contest) {
-      opportunitiesStore.updateContest(id, { is_featured: !contest.is_featured });
+    if (type === 'careers') {
+      const c = data as CareerListing;
+      baseOpportunity.location = c.location;
+      baseOpportunity.slug = c.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'); // Simple slug gen
+      metadata = {
+        company: c.company,
+        company_logo: c.company_logo,
+        employment_type: c.type,
+        experience_level: c.experience_level,
+        salary_range: c.salary_range,
+        benefits: c.benefits,
+        is_internal: c.is_internal,
+        category: c.category,
+      };
+    } else if (type === 'contests') {
+      const c = data as Contest;
+      baseOpportunity.slug = c.slug;
+      baseOpportunity.deadline = c.end_date;
+      baseOpportunity.status = c.status === 'completed' ? 'closed' : c.status === 'upcoming' ? 'draft' : c.status; // Map UI status to DB status
+      metadata = {
+        category: c.category,
+        start_date: c.start_date,
+        end_date: c.end_date,
+        results_date: c.results_date,
+        featured_image: c.featured_image,
+        telegram_channel: c.telegram_channel,
+        prizes: c.prizes,
+        judges: c.judges,
+        timeline: c.timeline,
+        submission_guidelines: c.submission_guidelines,
+        eligibility: c.eligibility,
+        sponsors: c.sponsors,
+        brief: c.brief,
+      };
+    } else if (type === 'grants') {
+      const g = data as Grant;
+      baseOpportunity.slug = g.title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      baseOpportunity.deadline = g.deadline;
+      baseOpportunity.status = g.status === 'closed' ? 'closed' : 'open';
+      metadata = {
+        organization: g.organization,
+        organization_logo: g.organization_logo,
+        amount_min: g.amount_min,
+        amount_max: g.amount_max,
+        focus_areas: g.focus_areas,
+        eligibility: g.eligibility,
+        application_process: g.application_process,
+        category: g.category,
+        funding_type: g.funding_type,
+      };
     }
-  };
 
-  const toggleGrantFeatured = (id: string) => {
-    const grant = grants.find((g) => g.id === id);
-    if (grant) {
-      opportunitiesStore.updateGrant(id, { is_featured: !grant.is_featured });
+    baseOpportunity.metadata = metadata;
+
+    if (isAdding) {
+      // For new items, ensure slug is unique (simple check, DB will error if duplicate)
+      // Also set default status if not set
+      if (!baseOpportunity.status) baseOpportunity.status = 'open';
+      const { error } = await supabase.from('opportunities').insert([baseOpportunity]);
+      if (error) alert('Error creating: ' + error.message);
+    } else {
+      const { error } = await supabase.from('opportunities').update(baseOpportunity).eq('id', data.id);
+      if (error) alert('Error updating: ' + error.message);
     }
+
+    setEditingCareer(null);
+    setEditingContest(null);
+    setEditingGrant(null);
+    setIsAdding(false);
+    fetchOpportunities();
   };
 
   const handleAddNew = () => {
@@ -161,36 +312,6 @@ export function OpportunitiesManager() {
     }
   };
 
-  const saveCareer = (career: CareerListing) => {
-    if (isAdding) {
-      opportunitiesStore.addCareer(career);
-    } else {
-      opportunitiesStore.updateCareer(career.id, career);
-    }
-    setEditingCareer(null);
-    setIsAdding(false);
-  };
-
-  const saveContest = (contest: Contest) => {
-    if (isAdding) {
-      opportunitiesStore.addContest(contest);
-    } else {
-      opportunitiesStore.updateContest(contest.id, contest);
-    }
-    setEditingContest(null);
-    setIsAdding(false);
-  };
-
-  const saveGrant = (grant: Grant) => {
-    if (isAdding) {
-      opportunitiesStore.addGrant(grant);
-    } else {
-      opportunitiesStore.updateGrant(grant.id, grant);
-    }
-    setEditingGrant(null);
-    setIsAdding(false);
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -245,7 +366,11 @@ export function OpportunitiesManager() {
         />
       </div>
 
-      {activeTab === 'careers' && (
+      {isLoading && (
+        <div className="p-12 text-center text-neutral-mid">Loading...</div>
+      )}
+
+      {!isLoading && activeTab === 'careers' && (
         <div className="bg-surface rounded border border-neutral-light overflow-hidden">
           {careers.length > 0 ? (
             <div className="divide-y divide-neutral-light">
@@ -277,7 +402,7 @@ export function OpportunitiesManager() {
                     </div>
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => toggleCareerFeatured(career.id)}
+                        onClick={() => toggleFeatured(career.id, career.is_featured)}
                         className={`p-2 rounded transition-colors ${
                           career.is_featured
                             ? 'text-orange bg-orange/10'
@@ -297,7 +422,7 @@ export function OpportunitiesManager() {
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => deleteCareer(career.id)}
+                        onClick={() => deleteOpportunity(career.id)}
                         className="p-2 text-neutral-mid hover:text-red-500 hover:bg-red-50 rounded transition-colors"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -312,7 +437,7 @@ export function OpportunitiesManager() {
         </div>
       )}
 
-      {activeTab === 'contests' && (
+      {!isLoading && activeTab === 'contests' && (
         <div className="bg-surface rounded border border-neutral-light overflow-hidden">
           {contests.length > 0 ? (
             <div className="divide-y divide-neutral-light">
@@ -357,7 +482,7 @@ export function OpportunitiesManager() {
                         <Users className="w-4 h-4" />
                       </Link>
                       <button
-                        onClick={() => toggleContestFeatured(contest.id)}
+                        onClick={() => toggleFeatured(contest.id, !!contest.is_featured)}
                         className={`p-2 rounded transition-colors ${
                           contest.is_featured
                             ? 'text-orange bg-orange/10'
@@ -376,7 +501,7 @@ export function OpportunitiesManager() {
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => deleteContest(contest.id)}
+                        onClick={() => deleteOpportunity(contest.id)}
                         className="p-2 text-neutral-mid hover:text-red-500 hover:bg-red-50 rounded transition-colors"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -391,7 +516,7 @@ export function OpportunitiesManager() {
         </div>
       )}
 
-      {activeTab === 'grants' && (
+      {!isLoading && activeTab === 'grants' && (
         <div className="bg-surface rounded border border-neutral-light overflow-hidden">
           {grants.length > 0 ? (
             <div className="divide-y divide-neutral-light">
@@ -400,7 +525,7 @@ export function OpportunitiesManager() {
                   (g) =>
                     searchQuery === '' ||
                     g.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    g.organization.toLowerCase().includes(searchQuery.toLowerCase())
+                    (g.organization && g.organization.toLowerCase().includes(searchQuery.toLowerCase()))
                 )
                 .map((grant) => (
                   <div key={grant.id} className="p-4 flex items-center gap-4">
@@ -424,13 +549,13 @@ export function OpportunitiesManager() {
                         {grant.is_featured && <Star className="w-4 h-4 text-orange fill-orange" />}
                       </div>
                       <p className="text-sm text-neutral-mid">
-                        {grant.organization} | ${grant.amount_min.toLocaleString()} - $
-                        {grant.amount_max.toLocaleString()}
+                        {grant.organization} | ${grant.amount_min?.toLocaleString()} - $
+                        {grant.amount_max?.toLocaleString()}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => toggleGrantFeatured(grant.id)}
+                        onClick={() => toggleFeatured(grant.id, !!grant.is_featured)}
                         className={`p-2 rounded transition-colors ${
                           grant.is_featured
                             ? 'text-orange bg-orange/10'
@@ -449,7 +574,7 @@ export function OpportunitiesManager() {
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => deleteGrant(grant.id)}
+                        onClick={() => deleteOpportunity(grant.id)}
                         className="p-2 text-neutral-mid hover:text-red-500 hover:bg-red-50 rounded transition-colors"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -467,7 +592,7 @@ export function OpportunitiesManager() {
       {editingCareer && (
         <CareerEditor
           career={editingCareer}
-          onSave={saveCareer}
+          onSave={(c) => handleSave(c, 'careers')}
           onCancel={() => {
             setEditingCareer(null);
             setIsAdding(false);
@@ -479,7 +604,7 @@ export function OpportunitiesManager() {
       {editingContest && (
         <ContestEditor
           contest={editingContest}
-          onSave={saveContest}
+          onSave={(c) => handleSave(c, 'contests')}
           onCancel={() => {
             setEditingContest(null);
             setIsAdding(false);
@@ -491,7 +616,7 @@ export function OpportunitiesManager() {
       {editingGrant && (
         <GrantEditor
           grant={editingGrant}
-          onSave={saveGrant}
+          onSave={(g) => handleSave(g, 'grants')}
           onCancel={() => {
             setEditingGrant(null);
             setIsAdding(false);
@@ -502,6 +627,11 @@ export function OpportunitiesManager() {
     </div>
   );
 }
+
+// Reuse the Editor components from the original file, just need to make sure they are included in this file or imported.
+// Since I can't easily import non-exported components from the original file without reading it again and extracting them, 
+// I will assume the user wants me to KEEP the existing Editor components in the same file.
+// I will paste the previous Editor components here.
 
 function CareerEditor({
   career,
