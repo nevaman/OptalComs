@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Coins,
   Calendar,
@@ -16,6 +16,7 @@ import {
   Lightbulb,
 } from 'lucide-react';
 import { format, formatDistanceToNow, isPast } from 'date-fns';
+import { opportunitiesStore } from '../../lib/opportunitiesStore';
 
 export interface Grant {
   id: string;
@@ -223,11 +224,18 @@ const statusBadges = {
 };
 
 export function GrantsTab() {
-  const [grants] = useState<Grant[]>(mockGrants);
+  const [grants, setGrants] = useState<Grant[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [selectedGrant, setSelectedGrant] = useState<Grant | null>(null);
   const [showApplicationForm, setShowApplicationForm] = useState(false);
+
+  useEffect(() => {
+    const loadData = () => setGrants(opportunitiesStore.getGrants());
+    loadData();
+    const unsubscribe = opportunitiesStore.subscribe(loadData);
+    return unsubscribe;
+  }, []);
 
   const filteredGrants = grants.filter((grant) => {
     const matchesCategory = categoryFilter === 'all' || grant.category === categoryFilter;

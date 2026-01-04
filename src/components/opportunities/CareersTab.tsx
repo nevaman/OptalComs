@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Search,
   MapPin,
@@ -14,6 +14,7 @@ import {
   X,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { opportunitiesStore } from '../../lib/opportunitiesStore';
 
 export interface CareerListing {
   id: string;
@@ -154,7 +155,7 @@ const jobTypes = [
 ];
 
 export function CareersTab() {
-  const [careers] = useState<CareerListing[]>(mockCareers);
+  const [careers, setCareers] = useState<CareerListing[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [sourceFilter, setSourceFilter] = useState<'all' | 'internal' | 'external'>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
@@ -162,6 +163,13 @@ export function CareersTab() {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedJob, setSelectedJob] = useState<CareerListing | null>(null);
   const [showApplicationForm, setShowApplicationForm] = useState(false);
+
+  useEffect(() => {
+    const loadData = () => setCareers(opportunitiesStore.getCareers());
+    loadData();
+    const unsubscribe = opportunitiesStore.subscribe(loadData);
+    return unsubscribe;
+  }, []);
 
   const filteredCareers = careers.filter((career) => {
     const matchesSearch =

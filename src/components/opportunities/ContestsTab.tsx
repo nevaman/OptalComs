@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Trophy,
   Calendar,
@@ -14,6 +14,7 @@ import {
   Gift,
 } from 'lucide-react';
 import { format, formatDistanceToNow, isPast, isFuture } from 'date-fns';
+import { opportunitiesStore } from '../../lib/opportunitiesStore';
 
 export interface Contest {
   id: string;
@@ -37,6 +38,7 @@ export interface Contest {
   featured_image?: string;
   is_featured: boolean;
   external_link?: string;
+  telegram_channel?: string;
 }
 
 export interface Winner {
@@ -240,11 +242,21 @@ const statusBadges = {
 };
 
 export function ContestsTab() {
-  const [contests] = useState<Contest[]>(mockContests);
-  const [winners] = useState<Winner[]>(mockWinners);
+  const [contests, setContests] = useState<Contest[]>([]);
+  const [winners, setWinners] = useState<Winner[]>([]);
   const [activeView, setActiveView] = useState<'active' | 'past' | 'winners'>('active');
   const [selectedContest, setSelectedContest] = useState<Contest | null>(null);
   const [showSubmissionForm, setShowSubmissionForm] = useState(false);
+
+  useEffect(() => {
+    const loadData = () => {
+      setContests(opportunitiesStore.getContests());
+      setWinners(opportunitiesStore.getWinners());
+    };
+    loadData();
+    const unsubscribe = opportunitiesStore.subscribe(loadData);
+    return unsubscribe;
+  }, []);
 
   const activeContests = contests.filter((c) => c.status === 'open' || c.status === 'upcoming');
   const pastContests = contests.filter((c) => c.status === 'completed' || c.status === 'judging');
@@ -653,7 +665,23 @@ function ContestSubmissionModal({
     e.preventDefault();
     setIsSubmitting(true);
     await new Promise((resolve) => setTimeout(resolve, 1500));
-    setRegistrationCode(generateCode());
+    const code = generateCode();
+    opportunitiesStore.addRegistration({
+      contest_id: contest.id,
+      contest_title: contest.title,
+      registration_code: code,
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      country: formData.country,
+      occupation: formData.occupation,
+      experience: formData.experience,
+      portfolio: formData.portfolio,
+      how_heard: formData.howHeard,
+      registered_at: new Date().toISOString(),
+      status: 'registered',
+    });
+    setRegistrationCode(code);
     setIsSubmitting(false);
   };
 
