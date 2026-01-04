@@ -54,4 +54,3 @@ CREATE POLICY "Admins can manage all talent"
 
 CREATE INDEX IF NOT EXISTS idx_talent_user ON talent(user_id);
 CREATE INDEX IF NOT EXISTS idx_talent_visible ON talent(is_visible);
-

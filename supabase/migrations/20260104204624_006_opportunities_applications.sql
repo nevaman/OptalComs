@@ -3,6 +3,37 @@
 
   Adds persistence for opportunities (jobs, contests, grants) and user submissions.
   This powers the admin Opportunities CRUD screens and the public Opportunities page.
+
+  1. New Tables
+    - `opportunities` - Jobs, contests, and grants
+      - `id` (uuid, primary key)
+      - `type` (text) - 'job', 'contest', or 'grant'
+      - `title` (text)
+      - `slug` (text, unique)
+      - `description` (text)
+      - `requirements` (text[])
+      - `location` (text)
+      - `deadline` (timestamptz)
+      - `status` (text) - 'open', 'closed', or 'draft'
+      - `external_link` (text)
+      - `metadata` (jsonb) - type-specific data
+      - `is_featured` (boolean)
+      - `created_at`, `updated_at` (timestamptz)
+
+    - `applications` - Submissions for jobs, contests, grants
+      - `id` (uuid, primary key)
+      - `opportunity_id` (uuid, references opportunities)
+      - `submission_type` (text) - 'job', 'contest', or 'grant'
+      - `user_id` (uuid, optional)
+      - Contact and profile fields
+      - `status` (text) - 'pending', 'approved', 'rejected'
+      - `created_at` (timestamptz)
+
+  2. Security
+    - RLS enabled on both tables
+    - Public can view non-draft opportunities
+    - Anyone can submit applications to non-draft opportunities
+    - Admins can manage all records
 */
 
 -- Opportunities table
@@ -116,6 +147,17 @@ CREATE POLICY "Admins can update applications"
     )
   )
   WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+      AND profiles.role IN ('admin', 'editor')
+    )
+  );
+
+CREATE POLICY "Admins can delete applications"
+  ON applications FOR DELETE
+  TO authenticated
+  USING (
     EXISTS (
       SELECT 1 FROM profiles
       WHERE profiles.id = auth.uid()
