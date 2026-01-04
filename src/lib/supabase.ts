@@ -148,7 +148,7 @@ export type AdminRequest = {
 
 export type Opportunity = {
   id: string;
-  type: 'job' | 'contest';
+  type: 'job' | 'contest' | 'grant';
   title: string;
   slug: string;
   description: string;
@@ -157,6 +157,8 @@ export type Opportunity = {
   deadline: string | null;
   status: 'open' | 'closed' | 'draft';
   external_link: string | null;
+  metadata: Record<string, unknown> | null;
+  is_featured: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -164,13 +166,20 @@ export type Opportunity = {
 export type Application = {
   id: string;
   opportunity_id: string;
+  submission_type: 'job' | 'contest' | 'grant';
   user_id: string | null;
   full_name: string;
   email: string;
+  phone: string | null;
+  country: string | null;
+  occupation: string | null;
+  experience: string | null;
   portfolio_link: string | null;
   github_link: string | null;
   resume_url: string | null;
   message: string | null;
+  how_heard: string | null;
+  registration_code: string | null;
   status: 'pending' | 'approved' | 'rejected';
   created_at: string;
 };

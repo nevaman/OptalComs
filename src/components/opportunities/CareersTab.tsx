@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Search,
   MapPin,
@@ -14,7 +14,7 @@ import {
   X,
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { opportunitiesStore } from '../../lib/opportunitiesStore';
+import { Opportunity, supabase } from '../../lib/supabase';
 
 export interface CareerListing {
   id: string;
@@ -36,110 +36,6 @@ export interface CareerListing {
   category: string;
 }
 
-const mockCareers: CareerListing[] = [
-  {
-    id: '1',
-    title: 'Senior UI/UX Designer',
-    company: 'Optal Creative',
-    location: 'Remote',
-    type: 'full-time',
-    experience_level: 'senior',
-    salary_range: '$90k - $120k',
-    description: 'We are looking for a Senior UI/UX Designer to join our growing team. You will work on high-impact projects for global brands.',
-    requirements: ['5+ years of UI/UX experience', 'Proficiency in Figma', 'Strong portfolio', 'Experience with design systems'],
-    benefits: ['Remote work', 'Health insurance', 'Learning budget', 'Flexible hours'],
-    is_internal: true,
-    posted_at: '2026-01-02T10:00:00Z',
-    is_featured: true,
-    category: 'Design',
-  },
-  {
-    id: '2',
-    title: 'Frontend Developer',
-    company: 'Optal Creative',
-    location: 'Remote / Hybrid',
-    type: 'full-time',
-    experience_level: 'mid',
-    salary_range: '$80k - $110k',
-    description: 'Join our development team to build beautiful, performant web applications using React and TypeScript.',
-    requirements: ['3+ years React experience', 'TypeScript proficiency', 'CSS/Tailwind expertise', 'Git workflow'],
-    benefits: ['Remote work', 'Stock options', 'Conference budget', '4-day work week'],
-    is_internal: true,
-    posted_at: '2026-01-01T14:00:00Z',
-    is_featured: true,
-    category: 'Engineering',
-  },
-  {
-    id: '3',
-    title: 'Communications Manager',
-    company: 'TechCorp Inc',
-    company_logo: 'https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=100',
-    location: 'New York, NY',
-    type: 'full-time',
-    experience_level: 'senior',
-    salary_range: '$100k - $140k',
-    description: 'Lead communications strategy for a fast-growing tech company. Work with executive team on PR and brand messaging.',
-    requirements: ['7+ years in communications', 'Tech industry experience', 'Media relations expertise', 'Crisis management'],
-    benefits: ['Competitive salary', 'Equity package', 'Premium healthcare', 'Unlimited PTO'],
-    is_internal: false,
-    external_link: 'https://example.com/jobs/1',
-    posted_at: '2025-12-28T09:00:00Z',
-    is_featured: false,
-    category: 'Marketing',
-  },
-  {
-    id: '4',
-    title: 'Brand Strategist',
-    company: 'Creative Agency X',
-    company_logo: 'https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg?auto=compress&cs=tinysrgb&w=100',
-    location: 'Los Angeles, CA',
-    type: 'full-time',
-    experience_level: 'mid',
-    description: 'Develop brand strategies for Fortune 500 clients. Lead client presentations and workshops.',
-    requirements: ['4+ years brand strategy', 'Agency experience preferred', 'Presentation skills', 'Research methodologies'],
-    benefits: ['Creative environment', 'Annual bonus', 'Training programs'],
-    is_internal: false,
-    external_link: 'https://example.com/jobs/2',
-    posted_at: '2025-12-25T11:00:00Z',
-    is_featured: false,
-    category: 'Strategy',
-  },
-  {
-    id: '5',
-    title: 'Motion Graphics Designer',
-    company: 'MediaHouse Studios',
-    company_logo: 'https://images.pexels.com/photos/3184339/pexels-photo-3184339.jpeg?auto=compress&cs=tinysrgb&w=100',
-    location: 'Remote',
-    type: 'contract',
-    experience_level: 'mid',
-    salary_range: '$60/hr - $80/hr',
-    description: 'Create stunning motion graphics for social media campaigns and video content.',
-    requirements: ['After Effects mastery', '3+ years experience', 'Social media formats', 'Quick turnaround'],
-    benefits: ['Flexible schedule', 'Creative freedom', 'Long-term contract potential'],
-    is_internal: false,
-    external_link: 'https://example.com/jobs/3',
-    posted_at: '2025-12-20T16:00:00Z',
-    is_featured: false,
-    category: 'Design',
-  },
-  {
-    id: '6',
-    title: 'Project Manager',
-    company: 'Optal Creative',
-    location: 'Remote',
-    type: 'full-time',
-    experience_level: 'mid',
-    salary_range: '$70k - $95k',
-    description: 'Manage multiple client projects simultaneously, ensuring on-time delivery and client satisfaction.',
-    requirements: ['3+ years PM experience', 'Agency background', 'Strong communication', 'Tool proficiency (Asana, Notion)'],
-    benefits: ['Remote work', 'Health insurance', 'Learning budget', 'Flexible hours'],
-    is_internal: true,
-    posted_at: '2025-12-18T10:00:00Z',
-    is_featured: false,
-    category: 'Operations',
-  },
-];
-
 const experienceLevels = [
   { value: 'entry', label: 'Entry Level' },
   { value: 'mid', label: 'Mid Level' },
@@ -154,8 +50,48 @@ const jobTypes = [
   { value: 'freelance', label: 'Freelance' },
 ];
 
-export function CareersTab() {
-  const [careers, setCareers] = useState<CareerListing[]>([]);
+type OpportunityMetadata = {
+  company?: string;
+  company_logo?: string;
+  category?: string;
+  experience_level?: CareerListing['experience_level'];
+  employment_type?: CareerListing['type'];
+  salary_range?: string;
+  benefits?: string[];
+  is_internal?: boolean;
+  posted_at?: string;
+};
+
+const mapOpportunityToCareer = (opportunity: Opportunity): CareerListing => {
+  const metadata = (opportunity.metadata || {}) as OpportunityMetadata;
+  return {
+    id: opportunity.id,
+    title: opportunity.title,
+    company: metadata.company || 'Optal Communications',
+    company_logo: metadata.company_logo,
+    location: opportunity.location || 'Remote',
+    type: metadata.employment_type || 'full-time',
+    experience_level: metadata.experience_level || 'mid',
+    salary_range: metadata.salary_range,
+    description: opportunity.description,
+    requirements: opportunity.requirements || [],
+    benefits: metadata.benefits || [],
+    is_internal: metadata.is_internal ?? !opportunity.external_link,
+    external_link: opportunity.external_link || undefined,
+    deadline: opportunity.deadline || undefined,
+    posted_at: metadata.posted_at || opportunity.created_at || new Date().toISOString(),
+    is_featured: opportunity.is_featured,
+    category: metadata.category || 'General',
+  };
+};
+
+export function CareersTab({
+  opportunities,
+  isLoading,
+}: {
+  opportunities: Opportunity[];
+  isLoading: boolean;
+}) {
   const [searchQuery, setSearchQuery] = useState('');
   const [sourceFilter, setSourceFilter] = useState<'all' | 'internal' | 'external'>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
@@ -164,12 +100,13 @@ export function CareersTab() {
   const [selectedJob, setSelectedJob] = useState<CareerListing | null>(null);
   const [showApplicationForm, setShowApplicationForm] = useState(false);
 
-  useEffect(() => {
-    const loadData = () => setCareers(opportunitiesStore.getCareers());
-    loadData();
-    const unsubscribe = opportunitiesStore.subscribe(loadData);
-    return unsubscribe;
-  }, []);
+  const careers = useMemo(
+    () =>
+      opportunities
+        .filter((op) => op.type === 'job' && op.status !== 'draft')
+        .map(mapOpportunityToCareer),
+    [opportunities]
+  );
 
   const filteredCareers = careers.filter((career) => {
     const matchesSearch =
@@ -191,6 +128,15 @@ export function CareersTab() {
 
   const featuredJobs = filteredCareers.filter((c) => c.is_featured);
   const regularJobs = filteredCareers.filter((c) => !c.is_featured);
+
+  if (isLoading) {
+    return (
+      <div className="p-12 text-center bg-neutral-light/20 rounded-lg">
+        <div className="w-10 h-10 border-4 border-orange border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-neutral-mid">Loading opportunities...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -493,18 +439,36 @@ function ApplicationFormModal({
     name: '',
     email: '',
     phone: '',
-    linkedin: '',
     portfolio: '',
-    resume: null as File | null,
     coverLetter: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitError(null);
     setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    const { error } = await supabase.from('applications').insert([
+      {
+        opportunity_id: job.id,
+        submission_type: 'job',
+        full_name: formData.name,
+        email: formData.email,
+        phone: formData.phone || null,
+        portfolio_link: formData.portfolio || null,
+        message: formData.coverLetter || null,
+        status: 'pending',
+      },
+    ]);
+
+    if (error) {
+      setSubmitError(error.message);
+      setIsSubmitting(false);
+      return;
+    }
+
     setIsSubmitting(false);
     setIsSubmitted(true);
   };
@@ -578,16 +542,6 @@ function ApplicationFormModal({
                 className="w-full px-3 py-2 border border-neutral-light rounded-lg focus:border-orange focus:outline-none"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">LinkedIn</label>
-              <input
-                type="url"
-                value={formData.linkedin}
-                onChange={(e) => setFormData({ ...formData, linkedin: e.target.value })}
-                className="w-full px-3 py-2 border border-neutral-light rounded-lg focus:border-orange focus:outline-none"
-                placeholder="https://linkedin.com/in/..."
-              />
-            </div>
           </div>
 
           <div>
@@ -619,6 +573,7 @@ function ApplicationFormModal({
           >
             {isSubmitting ? 'Submitting...' : 'Submit Application'}
           </button>
+          {submitError && <p className="text-sm text-red-600 text-center">{submitError}</p>}
         </form>
       </div>
     </div>

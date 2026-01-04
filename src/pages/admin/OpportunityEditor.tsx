@@ -24,6 +24,8 @@ export function OpportunityEditor() {
     deadline: '',
     status: 'draft',
     external_link: '',
+    metadata: {},
+    is_featured: false,
   });
 
   useEffect(() => {
@@ -42,10 +44,24 @@ export function OpportunityEditor() {
     if (!error && data) {
       // Format date for input
       const formattedDate = data.deadline ? new Date(data.deadline).toISOString().split('T')[0] : '';
-      setOpportunity({ ...data, deadline: formattedDate });
+      setOpportunity({
+        ...data,
+        deadline: formattedDate,
+        metadata: data.metadata || {},
+        is_featured: data.is_featured,
+      });
     }
     setIsLoading(false);
   }
+
+  const metadata = (opportunity.metadata as Record<string, unknown> | null) || {};
+
+  const updateMetadataField = (key: string, value: unknown) => {
+    setOpportunity((prev) => ({
+      ...prev,
+      metadata: { ...((prev.metadata as Record<string, unknown>) || {}), [key]: value },
+    }));
+  };
 
   function generateSlug(title: string) {
     return title
@@ -66,6 +82,8 @@ export function OpportunityEditor() {
     const dataToSave = {
       ...opportunity,
       deadline: opportunity.deadline || null,
+      metadata: metadata,
+      is_featured: opportunity.is_featured || false,
     };
 
     if (isNew) {
@@ -221,6 +239,7 @@ export function OpportunityEditor() {
               options={[
                 { value: 'job', label: 'Career / Job' },
                 { value: 'contest', label: 'Contest' },
+                { value: 'grant', label: 'Grant / Funding' },
               ]}
             />
 
@@ -243,6 +262,27 @@ export function OpportunityEditor() {
             />
 
             <Input
+              label="Company / Organization"
+              value={(metadata.company as string) || ''}
+              onChange={(e) => updateMetadataField('company', e.target.value)}
+              placeholder="Who is offering this opportunity?"
+            />
+
+            <Input
+              label="Category"
+              value={(metadata.category as string) || ''}
+              onChange={(e) => updateMetadataField('category', e.target.value)}
+              placeholder="Design, Marketing, Technology..."
+            />
+
+            <Input
+              label="Compensation / Prize"
+              value={(metadata.compensation as string) || ''}
+              onChange={(e) => updateMetadataField('compensation', e.target.value)}
+              placeholder="Salary range or prize amount"
+            />
+
+            <Input
               label="Deadline"
               type="date"
               value={opportunity.deadline || ''}
@@ -255,10 +295,19 @@ export function OpportunityEditor() {
               onChange={(e) => setOpportunity((prev) => ({ ...prev, external_link: e.target.value }))}
               placeholder="https://..."
             />
+
+            <div className="flex items-center justify-between border border-neutral-light rounded px-3 py-2">
+              <span className="text-sm font-medium">Feature this opportunity</span>
+              <input
+                type="checkbox"
+                checked={opportunity.is_featured || false}
+                onChange={(e) => setOpportunity((prev) => ({ ...prev, is_featured: e.target.checked }))}
+                className="h-4 w-4"
+              />
+            </div>
           </div>
         </div>
       </div>
     </div>
   );
 }
-
