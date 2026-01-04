@@ -14,7 +14,6 @@ import { InsightDetail } from './pages/InsightDetail';
 import { Contact } from './pages/Contact';
 import { Opportunities } from './pages/Opportunities';
 import { TalentPage } from './pages/Talent';
-import { OpportunitiesManager } from './pages/admin/OpportunitiesManager';
 import { ContestRegistrations } from './pages/admin/ContestRegistrations';
 import { ApplicationsList } from './pages/admin/ApplicationsList';
 import { TalentList } from './pages/admin/TalentList';
@@ -32,6 +31,8 @@ import { InsightEditor } from './pages/admin/InsightEditor';
 import { Settings } from './pages/admin/Settings';
 import { ContactSubmissions } from './pages/admin/ContactSubmissions';
 import { AccessRequests } from './pages/admin/AccessRequests';
+import { OpportunitiesList } from './pages/admin/OpportunitiesList';
+import { OpportunityEditor } from './pages/admin/OpportunityEditor';
 
 function App() {
   return (
@@ -73,7 +74,9 @@ function App() {
             <Route path="insights" element={<InsightsList />} />
             <Route path="insights/new" element={<InsightEditor />} />
             <Route path="insights/:id" element={<InsightEditor />} />
-            <Route path="opportunities" element={<OpportunitiesManager />} />
+            <Route path="opportunities" element={<OpportunitiesList />} />
+            <Route path="opportunities/new" element={<OpportunityEditor />} />
+            <Route path="opportunities/:id" element={<OpportunityEditor />} />
             <Route path="contest-registrations" element={<ContestRegistrations />} />
             <Route path="applications" element={<ApplicationsList />} />
             <Route path="talent" element={<TalentList />} />
