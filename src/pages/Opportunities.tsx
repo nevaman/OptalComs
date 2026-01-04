@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { Briefcase, Trophy, Coins, ArrowRight } from 'lucide-react';
 import { SectionHeading } from '../components/ui/SectionHeading';
 import { CareersTab } from '../components/opportunities/CareersTab';
 import { ContestsTab } from '../components/opportunities/ContestsTab';
 import { GrantsTab } from '../components/opportunities/GrantsTab';
+import { useOpportunities } from '../hooks/useOpportunities';
 
 const tabs = [
   { id: 'careers', label: 'Careers', icon: Briefcase, description: 'Join our team or find your next role' },
@@ -17,6 +18,7 @@ type TabId = typeof tabs[number]['id'];
 export function Opportunities() {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as TabId) || 'careers';
+  const { opportunities, isLoading, error } = useOpportunities();
 
   const setActiveTab = (tab: TabId) => {
     setSearchParams({ tab });
@@ -61,9 +63,20 @@ export function Opportunities() {
         </div>
 
         <div className="col-span-full">
-          {activeTab === 'careers' && <CareersTab />}
-          {activeTab === 'contests' && <ContestsTab />}
-          {activeTab === 'grants' && <GrantsTab />}
+          {error && (
+            <div className="p-4 mb-4 rounded border border-red-200 bg-red-50 text-red-700">
+              Unable to load opportunities right now. {error}
+            </div>
+          )}
+          {activeTab === 'careers' && (
+            <CareersTab opportunities={opportunities} isLoading={isLoading} />
+          )}
+          {activeTab === 'contests' && (
+            <ContestsTab opportunities={opportunities} isLoading={isLoading} />
+          )}
+          {activeTab === 'grants' && (
+            <GrantsTab opportunities={opportunities} isLoading={isLoading} />
+          )}
         </div>
       </div>
     </div>

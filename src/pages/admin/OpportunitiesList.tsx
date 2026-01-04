@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Plus, Search, Filter, MoreHorizontal, Briefcase, Trophy, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, Search, Filter, MoreHorizontal, Briefcase, Trophy, Clock, CheckCircle, XCircle, Coins } from 'lucide-react';
 import { supabase, Opportunity } from '../../lib/supabase';
 import { format } from 'date-fns';
 import { Button } from '../../components/ui/Button';
@@ -10,7 +10,7 @@ export function OpportunitiesList() {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [typeFilter, setTypeFilter] = useState<'all' | 'job' | 'contest'>('all');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'job' | 'contest' | 'grant'>('all');
 
   useEffect(() => {
     fetchOpportunities();
@@ -72,7 +72,7 @@ export function OpportunitiesList() {
             />
           </div>
           <div className="flex gap-2">
-            {(['all', 'job', 'contest'] as const).map((t) => (
+            {(['all', 'job', 'contest', 'grant'] as const).map((t) => (
               <button
                 key={t}
                 onClick={() => setTypeFilter(t)}
@@ -82,7 +82,7 @@ export function OpportunitiesList() {
                     : 'bg-neutral-light text-neutral-mid hover:bg-neutral-light/80'
                 }`}
               >
-                {t === 'all' ? 'All' : t === 'job' ? 'Jobs' : 'Contests'}
+                {t === 'all' ? 'All' : t === 'job' ? 'Jobs' : t === 'contest' ? 'Contests' : 'Grants'}
               </button>
             ))}
           </div>
@@ -114,14 +114,16 @@ export function OpportunitiesList() {
                     </td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium ${
-                        op.type === 'job' ? 'bg-blue-100 text-blue-700' : 'bg-orange/10 text-orange'
+                        op.type === 'job'
+                          ? 'bg-blue-100 text-blue-700'
+                          : op.type === 'contest'
+                            ? 'bg-orange/10 text-orange'
+                            : 'bg-green-100 text-green-700'
                       }`}>
-                        {op.type === 'job' ? (
-                          <Briefcase className="w-3 h-3" />
-                        ) : (
-                          <Trophy className="w-3 h-3" />
-                        )}
-                        {op.type === 'job' ? 'Career' : 'Contest'}
+                        {op.type === 'job' && <Briefcase className="w-3 h-3" />}
+                        {op.type === 'contest' && <Trophy className="w-3 h-3" />}
+                        {op.type === 'grant' && <Coins className="w-3 h-3" />}
+                        {op.type === 'job' ? 'Career' : op.type === 'contest' ? 'Contest' : 'Grant'}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -161,4 +163,3 @@ export function OpportunitiesList() {
     </div>
   );
 }
-
