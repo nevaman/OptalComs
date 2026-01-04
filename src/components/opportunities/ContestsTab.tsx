@@ -6,14 +6,12 @@ import {
   Users,
   Award,
   ArrowRight,
-  ExternalLink,
   X,
   CheckCircle2,
   Star,
   Zap,
   Target,
   Gift,
-  Upload,
 } from 'lucide-react';
 import { format, formatDistanceToNow, isPast, isFuture } from 'date-fns';
 
@@ -633,40 +631,119 @@ function ContestSubmissionModal({
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    phone: '',
+    country: '',
+    occupation: '',
     portfolio: '',
-    projectTitle: '',
-    projectDescription: '',
-    files: [] as File[],
+    experience: '',
+    howHeard: '',
     agreeToTerms: false,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [registrationCode, setRegistrationCode] = useState('');
+
+  const generateCode = () => {
+    const prefix = contest.slug.slice(0, 3).toUpperCase();
+    const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const timestamp = Date.now().toString(36).slice(-4).toUpperCase();
+    return `${prefix}-${random}-${timestamp}`;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     await new Promise((resolve) => setTimeout(resolve, 1500));
+    setRegistrationCode(generateCode());
     setIsSubmitting(false);
-    setIsSubmitted(true);
   };
 
-  if (isSubmitted) {
+  const copyCode = () => {
+    navigator.clipboard.writeText(registrationCode);
+  };
+
+  if (registrationCode) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-primary/50">
-        <div className="bg-surface rounded-lg w-full max-w-md p-8 text-center">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle2 className="w-8 h-8 text-green-600" />
+        <div className="bg-surface rounded-lg w-full max-w-md overflow-hidden">
+          <div className="bg-gradient-to-br from-orange to-orange/80 p-8 text-center text-surface">
+            <div className="w-20 h-20 bg-surface/20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <CheckCircle2 className="w-10 h-10" />
+            </div>
+            <h2 className="text-2xl font-display font-bold mb-2">You're Registered!</h2>
+            <p className="text-surface/80">
+              Welcome to {contest.title}
+            </p>
           </div>
-          <h2 className="text-2xl font-display font-bold mb-4">Entry Submitted!</h2>
-          <p className="text-neutral-mid mb-6">
-            Thank you for entering {contest.title}. You'll receive a confirmation email shortly.
-          </p>
-          <button
-            onClick={onClose}
-            className="w-full bg-primary text-surface px-6 py-3 font-medium rounded-lg hover:bg-neutral-dark transition-colors"
-          >
-            Close
-          </button>
+
+          <div className="p-6 space-y-6">
+            <div className="text-center">
+              <p className="text-sm text-neutral-mid mb-2">Your unique registration code</p>
+              <div className="flex items-center justify-center gap-2">
+                <code className="text-2xl font-mono font-bold text-primary bg-neutral-light/50 px-4 py-2 rounded-lg">
+                  {registrationCode}
+                </code>
+                <button
+                  onClick={copyCode}
+                  className="p-2 text-neutral-mid hover:text-orange transition-colors"
+                  title="Copy code"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                </button>
+              </div>
+              <p className="text-xs text-neutral-mid mt-2">Save this code - you'll need it to submit your work</p>
+            </div>
+
+            <div className="border-t border-neutral-light pt-6">
+              <h3 className="font-display font-bold text-center mb-4">Next Steps</h3>
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-orange/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-orange text-xs font-bold">1</span>
+                  </div>
+                  <p className="text-sm text-neutral-mid">
+                    Join our official Telegram contest channel to submit your work and connect with other participants
+                  </p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-orange/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-orange text-xs font-bold">2</span>
+                  </div>
+                  <p className="text-sm text-neutral-mid">
+                    Post your entry with your registration code <strong>{registrationCode}</strong> in the channel
+                  </p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-orange/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-orange text-xs font-bold">3</span>
+                  </div>
+                  <p className="text-sm text-neutral-mid">
+                    Get feedback from the community and judges leading up to the deadline
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <a
+              href="https://t.me/optalcontests"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full inline-flex items-center justify-center gap-3 bg-[#0088cc] text-surface px-6 py-4 font-medium rounded-lg hover:bg-[#0077b5] transition-colors"
+            >
+              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+              </svg>
+              Join Contest Channel
+            </a>
+
+            <button
+              onClick={onClose}
+              className="w-full text-neutral-mid hover:text-primary text-sm py-2 transition-colors"
+            >
+              Close this window
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -677,7 +754,7 @@ function ContestSubmissionModal({
       <div className="bg-surface rounded-lg w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-surface border-b border-neutral-light p-6 flex items-center justify-between z-10">
           <div>
-            <h2 className="text-xl font-display font-bold">Submit Entry</h2>
+            <h2 className="text-xl font-display font-bold">Register for Contest</h2>
             <p className="text-sm text-neutral-mid">{contest.title}</p>
           </div>
           <button onClick={onClose} className="p-2 text-neutral-mid hover:text-primary">
@@ -686,6 +763,12 @@ function ContestSubmissionModal({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div className="p-4 bg-orange/5 border border-orange/20 rounded-lg">
+            <p className="text-sm text-neutral-mid">
+              Register to receive your unique participant code. After registration, you'll be directed to our Telegram channel where you can submit and showcase your work.
+            </p>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1">Full Name *</label>
@@ -709,6 +792,59 @@ function ContestSubmissionModal({
             </div>
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Phone Number</label>
+              <input
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                className="w-full px-3 py-2 border border-neutral-light rounded-lg focus:border-orange focus:outline-none"
+                placeholder="+1 (555) 000-0000"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Country *</label>
+              <input
+                type="text"
+                required
+                value={formData.country}
+                onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                className="w-full px-3 py-2 border border-neutral-light rounded-lg focus:border-orange focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Occupation / Role *</label>
+              <input
+                type="text"
+                required
+                value={formData.occupation}
+                onChange={(e) => setFormData({ ...formData, occupation: e.target.value })}
+                className="w-full px-3 py-2 border border-neutral-light rounded-lg focus:border-orange focus:outline-none"
+                placeholder="e.g., Designer, Developer, Student"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Experience Level *</label>
+              <select
+                required
+                value={formData.experience}
+                onChange={(e) => setFormData({ ...formData, experience: e.target.value })}
+                className="w-full px-3 py-2 border border-neutral-light rounded-lg focus:border-orange focus:outline-none bg-surface"
+              >
+                <option value="">Select level</option>
+                <option value="student">Student</option>
+                <option value="junior">Junior (0-2 years)</option>
+                <option value="mid">Mid-level (2-5 years)</option>
+                <option value="senior">Senior (5+ years)</option>
+                <option value="lead">Lead / Director</option>
+              </select>
+            </div>
+          </div>
+
           <div>
             <label className="block text-sm font-medium mb-1">Portfolio / Website</label>
             <input
@@ -721,35 +857,20 @@ function ContestSubmissionModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Project Title *</label>
-            <input
-              type="text"
-              required
-              value={formData.projectTitle}
-              onChange={(e) => setFormData({ ...formData, projectTitle: e.target.value })}
-              className="w-full px-3 py-2 border border-neutral-light rounded-lg focus:border-orange focus:outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Project Description *</label>
-            <textarea
-              required
-              value={formData.projectDescription}
-              onChange={(e) => setFormData({ ...formData, projectDescription: e.target.value })}
-              rows={4}
-              className="w-full px-3 py-2 border border-neutral-light rounded-lg focus:border-orange focus:outline-none resize-none"
-              placeholder="Describe your submission..."
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Upload Files</label>
-            <div className="border-2 border-dashed border-neutral-light rounded-lg p-6 text-center">
-              <Upload className="w-8 h-8 text-neutral-mid mx-auto mb-2" />
-              <p className="text-sm text-neutral-mid">Drag files here or click to upload</p>
-              <p className="text-xs text-neutral-mid mt-1">PDF, ZIP, or images (max 50MB)</p>
-            </div>
+            <label className="block text-sm font-medium mb-1">How did you hear about this contest?</label>
+            <select
+              value={formData.howHeard}
+              onChange={(e) => setFormData({ ...formData, howHeard: e.target.value })}
+              className="w-full px-3 py-2 border border-neutral-light rounded-lg focus:border-orange focus:outline-none bg-surface"
+            >
+              <option value="">Select an option</option>
+              <option value="social_media">Social Media</option>
+              <option value="search">Search Engine</option>
+              <option value="friend">Friend / Colleague</option>
+              <option value="newsletter">Newsletter</option>
+              <option value="website">Our Website</option>
+              <option value="other">Other</option>
+            </select>
           </div>
 
           <label className="flex items-start gap-2 cursor-pointer">
@@ -761,7 +882,7 @@ function ContestSubmissionModal({
               className="mt-1"
             />
             <span className="text-sm text-neutral-mid">
-              I confirm this is my original work and I agree to the contest terms and conditions.
+              I agree to the contest rules and terms, and consent to receive updates about this contest via email.
             </span>
           </label>
 
@@ -770,7 +891,7 @@ function ContestSubmissionModal({
             disabled={isSubmitting}
             className="w-full bg-orange text-surface px-6 py-3 font-medium rounded-lg hover:bg-orange/90 transition-colors disabled:opacity-50"
           >
-            {isSubmitting ? 'Submitting...' : 'Submit Entry'}
+            {isSubmitting ? 'Registering...' : 'Register & Get Code'}
           </button>
         </form>
       </div>
