@@ -1,37 +1,26 @@
-import { useEffect, useState } from 'react';
-import { Briefcase, Trophy, Calendar, MapPin, ArrowRight, ExternalLink } from 'lucide-react';
-import { supabase, Opportunity } from '../lib/supabase';
+import { useState } from 'react';
+import { useSearchParams, Link } from 'react-router-dom';
+import { Briefcase, Trophy, Coins, ArrowRight } from 'lucide-react';
 import { SectionHeading } from '../components/ui/SectionHeading';
-import { ApplicationModal } from '../components/opportunities/ApplicationModal';
-import { format } from 'date-fns';
+import { CareersTab } from '../components/opportunities/CareersTab';
+import { ContestsTab } from '../components/opportunities/ContestsTab';
+import { GrantsTab } from '../components/opportunities/GrantsTab';
+
+const tabs = [
+  { id: 'careers', label: 'Careers', icon: Briefcase, description: 'Join our team or find your next role' },
+  { id: 'contests', label: 'Contests', icon: Trophy, description: 'Creative challenges with prizes' },
+  { id: 'grants', label: 'Grants', icon: Coins, description: 'Funding for creative projects' },
+] as const;
+
+type TabId = typeof tabs[number]['id'];
 
 export function Opportunities() {
-  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'job' | 'contest'>('all');
-  const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = (searchParams.get('tab') as TabId) || 'careers';
 
-  useEffect(() => {
-    async function fetchOpportunities() {
-      const { data } = await supabase
-        .from('opportunities')
-        .select('*')
-        .eq('status', 'open')
-        .order('created_at', { ascending: false });
-
-      if (data) {
-        setOpportunities(data);
-      }
-      setIsLoading(false);
-    }
-
-    fetchOpportunities();
-  }, []);
-
-  const filteredOpportunities = opportunities.filter((op) => {
-    if (filter === 'all') return true;
-    return op.type === filter;
-  });
+  const setActiveTab = (tab: TabId) => {
+    setSearchParams({ tab });
+  };
 
   return (
     <div className="pt-32 pb-20">
@@ -39,124 +28,44 @@ export function Opportunities() {
         <div className="col-span-full mb-12">
           <SectionHeading
             title="Opportunities"
-            subtitle="Join our team or participate in our creative challenges. We're always looking for talented designers and developers."
+            subtitle="Discover careers, creative contests, and funding opportunities. We connect talent with possibilities."
           />
-          
-          <div className="flex gap-4 mt-8 border-b border-neutral-light pb-4">
-            {(['all', 'job', 'contest'] as const).map((t) => (
-              <button
-                key={t}
-                onClick={() => setFilter(t)}
-                className={`px-4 py-2 text-sm font-medium transition-colors ${
-                  filter === t
-                    ? 'text-primary border-b-2 border-primary'
-                    : 'text-neutral-mid hover:text-primary'
-                }`}
-              >
-                {t === 'all' ? 'All Opportunities' : t === 'job' ? 'Careers' : 'Contests'}
-              </button>
-            ))}
+
+          <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-4">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`p-6 text-left border rounded-lg transition-all duration-300 ${
+                    isActive
+                      ? 'border-orange bg-orange/5 shadow-lg'
+                      : 'border-neutral-light hover:border-primary hover:shadow-md'
+                  }`}
+                >
+                  <div className={`w-12 h-12 rounded-lg flex items-center justify-center mb-4 ${
+                    isActive ? 'bg-orange text-surface' : 'bg-neutral-light/50 text-primary'
+                  }`}>
+                    <Icon className="w-6 h-6" />
+                  </div>
+                  <h3 className={`text-xl font-display font-bold mb-2 ${isActive ? 'text-orange' : ''}`}>
+                    {tab.label}
+                  </h3>
+                  <p className="text-sm text-neutral-mid">{tab.description}</p>
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {isLoading ? (
-          <div className="col-span-full grid grid-cols-1 md:grid-cols-2 gap-6">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-64 bg-neutral-light rounded animate-pulse" />
-            ))}
-          </div>
-        ) : filteredOpportunities.length > 0 ? (
-          <div className="col-span-full grid grid-cols-1 md:grid-cols-2 gap-8">
-            {filteredOpportunities.map((op) => (
-              <div
-                key={op.id}
-                className="group p-8 bg-surface border border-neutral-light hover:border-primary transition-all duration-300 flex flex-col h-full"
-              >
-                <div className="flex justify-between items-start mb-6">
-                  <div className="p-3 bg-neutral-light/30 rounded">
-                    {op.type === 'job' ? (
-                      <Briefcase className="w-6 h-6 text-primary" />
-                    ) : (
-                      <Trophy className="w-6 h-6 text-orange" />
-                    )}
-                  </div>
-                  <span className={`px-3 py-1 text-xs font-semibold uppercase tracking-wider rounded-full ${
-                    op.type === 'job' ? 'bg-blue-100 text-blue-700' : 'bg-orange/10 text-orange'
-                  }`}>
-                    {op.type === 'job' ? 'Career' : 'Contest'}
-                  </span>
-                </div>
-
-                <h3 className="text-2xl font-display font-bold mb-4 group-hover:text-primary transition-colors">
-                  {op.title}
-                </h3>
-
-                <p className="text-neutral-mid mb-8 flex-grow line-clamp-3">
-                  {op.description}
-                </p>
-
-                <div className="space-y-3 mb-8">
-                  {op.location && (
-                    <div className="flex items-center gap-2 text-sm text-neutral-mid">
-                      <MapPin className="w-4 h-4" />
-                      {op.location}
-                    </div>
-                  )}
-                  {op.deadline && (
-                    <div className="flex items-center gap-2 text-sm text-neutral-mid">
-                      <Calendar className="w-4 h-4" />
-                      Deadline: {format(new Date(op.deadline), 'MMMM d, yyyy')}
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex flex-wrap gap-2 mb-8">
-                  {op.requirements.slice(0, 3).map((req, i) => (
-                    <span key={i} className="px-3 py-1 bg-neutral-light/50 text-xs rounded text-neutral-mid">
-                      {req}
-                    </span>
-                  ))}
-                  {op.requirements.length > 3 && (
-                    <span className="text-xs text-neutral-mid self-center">
-                      +{op.requirements.length - 3} more
-                    </span>
-                  )}
-                </div>
-
-                {op.external_link ? (
-                  <a
-                    href={op.external_link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-primary hover:text-orange transition-colors mt-auto"
-                  >
-                    Apply Now <ExternalLink className="w-4 h-4" />
-                  </a>
-                ) : (
-                  <button 
-                    onClick={() => setSelectedOpportunity(op)}
-                    className="inline-flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-primary hover:text-orange transition-colors mt-auto"
-                  >
-                    Apply Now <ArrowRight className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="col-span-full text-center py-20 bg-neutral-light/10 rounded">
-            <p className="text-neutral-mid text-lg">No open opportunities at the moment. Check back later!</p>
-          </div>
-        )}
+        <div className="col-span-full">
+          {activeTab === 'careers' && <CareersTab />}
+          {activeTab === 'contests' && <ContestsTab />}
+          {activeTab === 'grants' && <GrantsTab />}
+        </div>
       </div>
-
-      {selectedOpportunity && (
-        <ApplicationModal 
-          opportunity={selectedOpportunity} 
-          onClose={() => setSelectedOpportunity(null)} 
-        />
-      )}
     </div>
   );
 }
-

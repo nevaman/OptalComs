@@ -14,8 +14,7 @@ import { InsightDetail } from './pages/InsightDetail';
 import { Contact } from './pages/Contact';
 import { Opportunities } from './pages/Opportunities';
 import { TalentPage } from './pages/Talent';
-import { OpportunitiesList } from './pages/admin/OpportunitiesList';
-import { OpportunityEditor } from './pages/admin/OpportunityEditor';
+import { OpportunitiesManager } from './pages/admin/OpportunitiesManager';
 import { ApplicationsList } from './pages/admin/ApplicationsList';
 import { TalentList } from './pages/admin/TalentList';
 import { TalentPageSettings } from './pages/admin/TalentPageSettings';
@@ -73,9 +72,7 @@ function App() {
             <Route path="insights" element={<InsightsList />} />
             <Route path="insights/new" element={<InsightEditor />} />
             <Route path="insights/:id" element={<InsightEditor />} />
-            <Route path="opportunities" element={<OpportunitiesList />} />
-            <Route path="opportunities/new" element={<OpportunityEditor />} />
-            <Route path="opportunities/:id" element={<OpportunityEditor />} />
+            <Route path="opportunities" element={<OpportunitiesManager />} />
             <Route path="applications" element={<ApplicationsList />} />
             <Route path="talent" element={<TalentList />} />
             <Route path="talent-settings" element={<TalentPageSettings />} />
