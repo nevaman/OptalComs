@@ -33,6 +33,7 @@ const navItems = [
   { href: '/admin/hiring-requests', label: 'Hiring Requests', icon: Inbox },
   { href: '/admin/submissions', label: 'Submissions', icon: Mail },
   { href: '/admin/access-requests', label: 'Access Requests', icon: UserCheck },
+  { href: '/admin/contact-settings', label: 'Contact Info', icon: Mail },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
 ];
 

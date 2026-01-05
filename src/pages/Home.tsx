@@ -4,6 +4,7 @@ import { ArrowRight, ArrowUpRight } from 'lucide-react';
 import { supabase, Project } from '../lib/supabase';
 import { ProjectCard } from '../components/ui/ProjectCard';
 import { Button } from '../components/ui/Button';
+import { useContactSettings } from '../contexts/ContactSettingsContext';
 
 const capabilities = [
   'Brand Identity',
@@ -36,6 +37,7 @@ const testimonials = [
 ];
 
 export function Home() {
+  const { settings } = useContactSettings();
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [scrollY, setScrollY] = useState(0);
@@ -328,10 +330,10 @@ export function Home() {
               <div className="col-span-4 md:col-span-3 lg:col-span-4 lg:col-start-9 mt-12 md:mt-0">
                 <div className="space-y-4">
                   <a
-                    href="mailto:hello@optal.co"
+                    href={`mailto:${settings.email}`}
                     className="group flex items-center justify-between p-5 border border-neutral-light hover:border-primary/30 hover:bg-primary/[0.02] transition-all duration-300"
                   >
-                    <span className="font-medium">hello@optal.co</span>
+                    <span className="font-medium">{settings.email}</span>
                     <span className="relative w-8 h-8 flex items-center justify-center rounded-full border border-neutral-light group-hover:border-primary/30 overflow-hidden transition-colors duration-300">
                       <ArrowUpRight className="w-4 h-4 text-neutral-mid group-hover:text-primary transition-all duration-300 group-hover:translate-x-[150%] group-hover:-translate-y-[150%]" />
                       <ArrowUpRight className="w-4 h-4 text-primary absolute -translate-x-[150%] translate-y-[150%] transition-transform duration-300 group-hover:translate-x-0 group-hover:translate-y-0" />

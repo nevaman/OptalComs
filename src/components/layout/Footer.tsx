@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ArrowUpRight } from 'lucide-react';
+import { useContactSettings } from '../../contexts/ContactSettingsContext';
 
 const footerLinks = {
   studio: [
@@ -19,6 +20,7 @@ const footerLinks = {
 };
 
 export function Footer() {
+  const { settings } = useContactSettings();
   const currentYear = new Date().getFullYear();
 
   return (
@@ -53,10 +55,10 @@ export function Footer() {
               </p>
 
               <a
-                href="mailto:hello@optal.co"
+                href={`mailto:${settings.email}`}
                 className="group inline-flex items-center gap-3 text-lg md:text-xl font-display text-surface hover:text-orange transition-colors duration-300"
               >
-                <span>hello@optal.co</span>
+                <span>{settings.email}</span>
                 <span className="relative w-6 h-6 flex items-center justify-center rounded-full border border-surface/30 group-hover:border-orange transition-colors duration-300 overflow-hidden">
                   <ArrowUpRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-[150%] group-hover:-translate-y-[150%]" />
                   <ArrowUpRight className="w-3.5 h-3.5 absolute -translate-x-[150%] translate-y-[150%] transition-transform duration-300 group-hover:translate-x-0 group-hover:translate-y-0" />
@@ -122,12 +124,12 @@ export function Footer() {
                 Location
               </h4>
               <address className="not-italic text-sm text-surface/70 leading-relaxed">
-                Addis Ababa, Ethiopia
+                {settings.location}
                 <br />
                 <span className="text-surface/50">Serving clients worldwide</span>
               </address>
               <p className="text-sm text-surface/70 mt-4">
-                +251 93 835 2532
+                {settings.phone}
               </p>
             </div>
           </div>

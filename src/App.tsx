@@ -1,5 +1,6 @@
 import { HashRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { ContactSettingsProvider } from './contexts/ContactSettingsContext';
 import { Layout } from './components/layout/Layout';
 import { AdminLayout } from './components/admin/AdminLayout';
 import { ProtectedRoute } from './components/admin/ProtectedRoute';
@@ -33,14 +34,16 @@ import { CareerEditor } from './pages/admin/CareerEditor';
 import { ContestEditor } from './pages/admin/ContestEditor';
 import { GrantEditor } from './pages/admin/GrantEditor';
 import { Settings } from './pages/admin/Settings';
+import { ContactSettings } from './pages/admin/ContactSettings';
 import { ContactSubmissions } from './pages/admin/ContactSubmissions';
 import { AccessRequests } from './pages/admin/AccessRequests';
 
 function App() {
   return (
     <AuthProvider>
-      <HashRouter>
-        <Routes>
+      <ContactSettingsProvider>
+        <HashRouter>
+          <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<Home />} />
             <Route path="/work" element={<Work />} />
@@ -90,10 +93,12 @@ function App() {
             <Route path="hiring-requests" element={<HiringRequests />} />
             <Route path="submissions" element={<ContactSubmissions />} />
             <Route path="access-requests" element={<AccessRequests />} />
+            <Route path="contact-settings" element={<ContactSettings />} />
             <Route path="settings" element={<Settings />} />
           </Route>
-        </Routes>
-      </HashRouter>
+          </Routes>
+        </HashRouter>
+      </ContactSettingsProvider>
     </AuthProvider>
   );
 }

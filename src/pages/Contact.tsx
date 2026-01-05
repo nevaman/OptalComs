@@ -3,6 +3,7 @@ import { Send, Check, MessageCircle, Phone, ArrowUpRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Input, Textarea, Select } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
+import { useContactSettings } from '../contexts/ContactSettingsContext';
 
 const budgetOptions = [
   { value: '', label: 'Select budget range' },
@@ -46,6 +47,7 @@ const faqs = [
 ];
 
 export function Contact() {
+  const { settings } = useContactSettings();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -121,10 +123,10 @@ export function Contact() {
                     Email
                   </h3>
                   <a
-                    href="mailto:hello@optal.co"
+                    href={`mailto:${settings.email}`}
                     className="text-lg font-medium hover:text-orange transition-colors"
                   >
-                    hello@optal.co
+                    {settings.email}
                   </a>
                 </div>
 
@@ -133,10 +135,10 @@ export function Contact() {
                     Phone
                   </h3>
                   <a
-                    href="tel:+251912345678"
+                    href={`tel:${settings.phone.replace(/\s/g, '')}`}
                     className="text-lg font-medium hover:text-orange transition-colors"
                   >
-                    +251 91 234 5678
+                    {settings.phone}
                   </a>
                 </div>
 
@@ -144,13 +146,13 @@ export function Contact() {
                   <h3 className="text-xs uppercase tracking-wider text-neutral-mid font-medium mb-2">
                     Location
                   </h3>
-                  <p className="text-lg">Addis Ababa, Ethiopia</p>
+                  <p className="text-lg">{settings.location}</p>
                 </div>
               </div>
 
               <div className="mt-12 flex gap-4">
                 <a
-                  href="https://wa.me/251912345678"
+                  href={`https://wa.me/${settings.whatsapp}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 px-4 py-3 border border-neutral-light hover:border-primary transition-colors"
@@ -159,7 +161,7 @@ export function Contact() {
                   <span className="text-sm font-medium">WhatsApp</span>
                 </a>
                 <a
-                  href="https://t.me/optalcomms"
+                  href={`https://t.me/${settings.telegram}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 px-4 py-3 border border-neutral-light hover:border-primary transition-colors"

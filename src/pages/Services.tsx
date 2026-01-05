@@ -1,6 +1,7 @@
 import { ArrowRight, Check, ArrowUpRight } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { SectionHeading } from '../components/ui/SectionHeading';
+import { useContactSettings } from '../contexts/ContactSettingsContext';
 
 const services = [
   {
@@ -102,6 +103,8 @@ const engagementModels = [
 ];
 
 export function Services() {
+  const { settings } = useContactSettings();
+
   return (
     <>
       <section className="section-padding relative">
@@ -270,10 +273,10 @@ export function Services() {
 
             <div className="col-span-4 md:col-span-2 lg:col-span-4 lg:col-start-9 mt-12 md:mt-0">
               <a
-                href="mailto:hello@optal.co"
+                href={`mailto:${settings.email}`}
                 className="group flex items-center justify-between p-5 border border-neutral-light hover:border-primary/30 hover:bg-primary/[0.02] transition-all duration-300"
               >
-                <span className="font-medium">hello@optal.co</span>
+                <span className="font-medium">{settings.email}</span>
                 <span className="relative w-8 h-8 flex items-center justify-center rounded-full border border-neutral-light group-hover:border-primary/30 overflow-hidden transition-colors duration-300">
                   <ArrowUpRight className="w-4 h-4 text-neutral-mid group-hover:text-primary transition-all duration-300 group-hover:translate-x-[150%] group-hover:-translate-y-[150%]" />
                   <ArrowUpRight className="w-4 h-4 text-primary absolute -translate-x-[150%] translate-y-[150%] transition-transform duration-300 group-hover:translate-x-0 group-hover:translate-y-0" />

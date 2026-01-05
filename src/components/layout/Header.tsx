@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, ArrowUpRight } from 'lucide-react';
+import { useContactSettings } from '../../contexts/ContactSettingsContext';
 
 const navLinks = [
   { href: '/work', label: 'Work' },
@@ -13,6 +14,7 @@ const navLinks = [
 ];
 
 export function Header() {
+  const { settings } = useContactSettings();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
@@ -219,7 +221,7 @@ export function Header() {
               <ArrowUpRight className="w-4 h-4" />
             </Link>
             <p className="mt-6 text-sm text-neutral-mid">
-              hello@optal.co
+              {settings.email}
             </p>
           </div>
         </div>
