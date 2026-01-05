@@ -21,7 +21,7 @@ const defaultSettings: SiteSettings = {
   studio_name: 'Optal Communications',
   tagline: 'Ethiopian creatives, global clients',
   email: 'hello@optal.co',
-  phone: '+251 91 234 5678',
+  phone: '+251 93 835 2532',
   address: 'Addis Ababa, Ethiopia',
   social_linkedin: 'https://linkedin.com',
   social_twitter: 'https://twitter.com',
