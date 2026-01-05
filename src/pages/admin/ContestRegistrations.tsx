@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import {
   Search,
   Filter,
@@ -9,6 +9,7 @@ import {
   User,
   Calendar,
   MapPin,
+  Briefcase,
   Globe,
   CheckCircle2,
   Clock,
@@ -17,12 +18,11 @@ import {
   MoreHorizontal,
   Trophy,
   Copy,
+  ChevronDown,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Button } from '../../components/ui/Button';
-import { Application, Opportunity, supabase } from '../../lib/supabase';
-
-type ContestRegistration = (Application & { opportunities: Opportunity | null });
+import { opportunitiesStore, ContestRegistration } from '../../lib/opportunitiesStore';
 
 const experienceLevels: Record<string, string> = {
   student: 'Student',
@@ -47,8 +47,6 @@ export function ContestRegistrations() {
 
   const [registrations, setRegistrations] = useState<ContestRegistration[]>([]);
   const [contests, setContests] = useState<{ id: string; title: string }[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [contestFilter, setContestFilter] = useState<string>(contestIdFilter || 'all');
@@ -56,49 +54,29 @@ export function ContestRegistrations() {
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
-    fetchRegistrations();
+    loadData();
+    const unsubscribe = opportunitiesStore.subscribe(loadData);
+    return unsubscribe;
   }, []);
 
-  async function fetchRegistrations() {
-    setIsLoading(true);
-    const { data, error } = await supabase
-      .from('applications')
-      .select('*, opportunities(*)')
-      .eq('submission_type', 'contest')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      setError(error.message);
-    } else {
-      setError(null);
-      setRegistrations((data as any) || []);
-      const contestOptions = Array.from(
-        new Map(
-          (data || [])
-            .map((app: any) => app.opportunities)
-            .filter(Boolean)
-            .map((op: Opportunity) => [op.id, { id: op.id, title: op.title }])
-        ).values()
-      );
-      setContests(contestOptions as { id: string; title: string }[]);
-    }
-    setIsLoading(false);
+  function loadData() {
+    setRegistrations(opportunitiesStore.getContestRegistrations());
+    setContests(opportunitiesStore.getContests().map((c) => ({ id: c.id, title: c.title })));
   }
 
   const filteredRegistrations = registrations.filter((reg) => {
     const matchesSearch =
       searchQuery === '' ||
-      reg.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      reg.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       reg.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (reg.registration_code || '').toLowerCase().includes(searchQuery.toLowerCase());
+      reg.registration_code.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || reg.status === statusFilter;
-    const matchesContest = contestFilter === 'all' || reg.opportunity_id === contestFilter;
+    const matchesContest = contestFilter === 'all' || reg.contest_id === contestFilter;
     return matchesSearch && matchesStatus && matchesContest;
   });
 
-  const updateStatus = async (id: string, status: ContestRegistration['status']) => {
-    await supabase.from('applications').update({ status }).eq('id', id);
-    setRegistrations((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
+  const updateStatus = (id: string, status: ContestRegistration['status']) => {
+    opportunitiesStore.updateRegistration(id, { status });
   };
 
   const copyCode = (code: string) => {
@@ -108,17 +86,17 @@ export function ContestRegistrations() {
   const exportCSV = () => {
     const headers = ['Name', 'Email', 'Phone', 'Country', 'Occupation', 'Experience', 'Portfolio', 'Registration Code', 'Contest', 'Status', 'Registered At'];
     const rows = filteredRegistrations.map((reg) => [
-      reg.full_name,
+      reg.name,
       reg.email,
       reg.phone,
       reg.country,
       reg.occupation,
-      experienceLevels[reg.experience || ''] || reg.experience || '',
-      reg.portfolio_link,
-      reg.registration_code || '',
-      reg.opportunities?.title || '',
+      experienceLevels[reg.experience] || reg.experience,
+      reg.portfolio,
+      reg.registration_code,
+      reg.contest_title,
       reg.status,
-      format(new Date(reg.created_at), 'yyyy-MM-dd HH:mm'),
+      format(new Date(reg.registered_at), 'yyyy-MM-dd HH:mm'),
     ]);
 
     const csv = [headers, ...rows].map((row) => row.map((cell) => `"${cell}"`).join(',')).join('\n');
@@ -132,35 +110,35 @@ export function ContestRegistrations() {
 
   const getStatusBadge = (status: ContestRegistration['status']) => {
     switch (status) {
-      case 'pending':
+      case 'registered':
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded">
             <Clock className="w-3 h-3" />
-            Pending
+            Registered
           </span>
         );
-      case 'approved':
+      case 'submitted':
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded">
             <CheckCircle2 className="w-3 h-3" />
-            Approved
+            Submitted
           </span>
         );
-      case 'rejected':
+      case 'disqualified':
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 text-xs font-medium rounded">
             <XCircle className="w-3 h-3" />
-            Rejected
+            Disqualified
           </span>
         );
     }
   };
 
   const stats = {
-    total: registrations.filter((r) => contestFilter === 'all' || r.opportunity_id === contestFilter).length,
-    pending: registrations.filter((r) => (contestFilter === 'all' || r.opportunity_id === contestFilter) && r.status === 'pending').length,
-    approved: registrations.filter((r) => (contestFilter === 'all' || r.opportunity_id === contestFilter) && r.status === 'approved').length,
-    rejected: registrations.filter((r) => (contestFilter === 'all' || r.opportunity_id === contestFilter) && r.status === 'rejected').length,
+    total: registrations.filter((r) => contestFilter === 'all' || r.contest_id === contestFilter).length,
+    registered: registrations.filter((r) => (contestFilter === 'all' || r.contest_id === contestFilter) && r.status === 'registered').length,
+    submitted: registrations.filter((r) => (contestFilter === 'all' || r.contest_id === contestFilter) && r.status === 'submitted').length,
+    disqualified: registrations.filter((r) => (contestFilter === 'all' || r.contest_id === contestFilter) && r.status === 'disqualified').length,
   };
 
   return (
@@ -186,16 +164,16 @@ export function ContestRegistrations() {
           <p className="text-2xl font-display font-bold mt-1">{stats.total}</p>
         </div>
         <div className="bg-surface p-4 rounded border border-neutral-light">
-          <p className="text-sm text-neutral-mid">Pending</p>
-          <p className="text-2xl font-display font-bold text-blue-600 mt-1">{stats.pending}</p>
+          <p className="text-sm text-neutral-mid">Registered</p>
+          <p className="text-2xl font-display font-bold text-blue-600 mt-1">{stats.registered}</p>
         </div>
         <div className="bg-surface p-4 rounded border border-neutral-light">
-          <p className="text-sm text-neutral-mid">Approved</p>
-          <p className="text-2xl font-display font-bold text-green-600 mt-1">{stats.approved}</p>
+          <p className="text-sm text-neutral-mid">Submitted Work</p>
+          <p className="text-2xl font-display font-bold text-green-600 mt-1">{stats.submitted}</p>
         </div>
         <div className="bg-surface p-4 rounded border border-neutral-light">
-          <p className="text-sm text-neutral-mid">Rejected</p>
-          <p className="text-2xl font-display font-bold text-red-600 mt-1">{stats.rejected}</p>
+          <p className="text-sm text-neutral-mid">Disqualified</p>
+          <p className="text-2xl font-display font-bold text-red-600 mt-1">{stats.disqualified}</p>
         </div>
       </div>
 
@@ -238,26 +216,15 @@ export function ContestRegistrations() {
                 className="px-3 py-2.5 border border-neutral-light rounded focus:border-orange focus:outline-none bg-surface"
               >
                 <option value="all">All Statuses</option>
-                <option value="pending">Pending</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
+                <option value="registered">Registered</option>
+                <option value="submitted">Submitted</option>
+                <option value="disqualified">Disqualified</option>
               </select>
             </div>
           </div>
         </div>
 
-        {error && (
-          <div className="p-4 bg-red-50 text-red-700 border border-red-200">
-            Failed to load registrations: {error}
-          </div>
-        )}
-
-        {isLoading ? (
-          <div className="p-8 text-center">
-            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-neutral-mid">Loading registrations...</p>
-          </div>
-        ) : filteredRegistrations.length > 0 ? (
+        {filteredRegistrations.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
@@ -280,7 +247,7 @@ export function ContestRegistrations() {
                           <User className="w-4 h-4 text-orange" />
                         </div>
                         <div>
-                          <p className="font-medium">{reg.full_name}</p>
+                          <p className="font-medium">{reg.name}</p>
                           <p className="text-xs text-neutral-mid">{reg.email}</p>
                         </div>
                       </div>
@@ -288,29 +255,29 @@ export function ContestRegistrations() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
                         <code className="text-xs font-mono bg-neutral-light/50 px-2 py-1 rounded">
-                          {reg.registration_code || '—'}
+                          {reg.registration_code}
                         </code>
                         <button
-                          onClick={() => reg.registration_code && copyCode(reg.registration_code)}
+                          onClick={() => copyCode(reg.registration_code)}
                           className="p-1 text-neutral-mid hover:text-orange transition-colors"
                           title="Copy code"
-                          >
+                        >
                           <Copy className="w-3 h-3" />
                         </button>
                       </div>
                     </td>
                     <td className="px-4 py-3 hidden md:table-cell">
-                      <span className="text-sm text-neutral-mid">{reg.opportunities?.title || 'Unknown contest'}</span>
+                      <span className="text-sm text-neutral-mid">{reg.contest_title}</span>
                     </td>
                     <td className="px-4 py-3 hidden lg:table-cell">
                       <div className="flex items-center gap-1 text-sm text-neutral-mid">
                         <MapPin className="w-3 h-3" />
-                        {reg.country || '—'}
+                        {reg.country}
                       </div>
                     </td>
                     <td className="px-4 py-3 hidden lg:table-cell">
                       <span className="text-sm text-neutral-mid">
-                        {experienceLevels[reg.experience || ''] || reg.experience || '—'}
+                        {experienceLevels[reg.experience] || reg.experience}
                       </span>
                     </td>
                     <td className="px-4 py-3">{getStatusBadge(reg.status)}</td>
@@ -329,25 +296,25 @@ export function ContestRegistrations() {
                           </button>
                           <div className="absolute right-0 top-full mt-1 w-40 bg-surface border border-neutral-light rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
                             <button
-                              onClick={() => updateStatus(reg.id, 'pending')}
+                              onClick={() => updateStatus(reg.id, 'registered')}
                               className="w-full text-left px-3 py-2 text-sm hover:bg-neutral-light/30 transition-colors flex items-center gap-2"
                             >
                               <Clock className="w-4 h-4 text-blue-600" />
-                              Mark Pending
+                              Mark Registered
                             </button>
                             <button
-                              onClick={() => updateStatus(reg.id, 'approved')}
+                              onClick={() => updateStatus(reg.id, 'submitted')}
                               className="w-full text-left px-3 py-2 text-sm hover:bg-neutral-light/30 transition-colors flex items-center gap-2"
                             >
                               <CheckCircle2 className="w-4 h-4 text-green-600" />
-                              Mark Approved
+                              Mark Submitted
                             </button>
                             <button
-                              onClick={() => updateStatus(reg.id, 'rejected')}
+                              onClick={() => updateStatus(reg.id, 'disqualified')}
                               className="w-full text-left px-3 py-2 text-sm hover:bg-neutral-light/30 transition-colors flex items-center gap-2"
                             >
                               <XCircle className="w-4 h-4 text-red-600" />
-                              Reject
+                              Disqualify
                             </button>
                           </div>
                         </div>
@@ -390,9 +357,7 @@ function RegistrationDetailModal({
   onUpdateStatus: (status: ContestRegistration['status']) => void;
 }) {
   const copyCode = () => {
-    if (registration.registration_code) {
-      navigator.clipboard.writeText(registration.registration_code);
-    }
+    navigator.clipboard.writeText(registration.registration_code);
   };
 
   return (
@@ -411,26 +376,24 @@ function RegistrationDetailModal({
               <User className="w-8 h-8 text-orange" />
             </div>
             <div>
-              <h3 className="text-lg font-display font-bold">{registration.full_name}</h3>
-              <p className="text-neutral-mid">{registration.opportunities?.title || 'Contest registration'}</p>
+              <h3 className="text-lg font-display font-bold">{registration.name}</h3>
+              <p className="text-neutral-mid">{registration.occupation}</p>
             </div>
           </div>
 
-          {registration.registration_code && (
-            <div className="p-4 bg-neutral-light/30 rounded-lg">
-              <p className="text-xs text-neutral-mid mb-1">Registration Code</p>
-              <div className="flex items-center gap-2">
-                <code className="text-lg font-mono font-bold">{registration.registration_code}</code>
-                <button
-                  onClick={copyCode}
-                  className="p-1 text-neutral-mid hover:text-orange transition-colors"
-                  title="Copy code"
-                >
-                  <Copy className="w-4 h-4" />
-                </button>
-              </div>
+          <div className="p-4 bg-neutral-light/30 rounded-lg">
+            <p className="text-xs text-neutral-mid mb-1">Registration Code</p>
+            <div className="flex items-center gap-2">
+              <code className="text-lg font-mono font-bold">{registration.registration_code}</code>
+              <button
+                onClick={copyCode}
+                className="p-1 text-neutral-mid hover:text-orange transition-colors"
+                title="Copy code"
+              >
+                <Copy className="w-4 h-4" />
+              </button>
             </div>
-          )}
+          </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -444,75 +407,92 @@ function RegistrationDetailModal({
               </a>
             </div>
             <div>
+              <p className="text-xs text-neutral-mid mb-1">Phone</p>
+              <p className="text-sm">{registration.phone || '-'}</p>
+            </div>
+            <div>
               <p className="text-xs text-neutral-mid mb-1">Country</p>
               <p className="text-sm flex items-center gap-1">
                 <MapPin className="w-3 h-3 text-neutral-mid" />
-                {registration.country || '—'}
+                {registration.country}
               </p>
             </div>
             <div>
+              <p className="text-xs text-neutral-mid mb-1">Experience</p>
+              <p className="text-sm flex items-center gap-1">
+                <Briefcase className="w-3 h-3 text-neutral-mid" />
+                {experienceLevels[registration.experience] || registration.experience}
+              </p>
+            </div>
+          </div>
+
+          {registration.portfolio && (
+            <div>
               <p className="text-xs text-neutral-mid mb-1">Portfolio</p>
-              {registration.portfolio_link ? (
-                <a
-                  href={registration.portfolio_link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-orange hover:underline flex items-center gap-1"
-                >
-                  <Globe className="w-3 h-3" />
-                  {registration.portfolio_link}
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              ) : (
-                <p className="text-sm text-neutral-mid">—</p>
-              )}
+              <a
+                href={registration.portfolio}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-orange hover:underline flex items-center gap-1"
+              >
+                <Globe className="w-3 h-3" />
+                {registration.portfolio}
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs text-neutral-mid mb-1">Contest</p>
+              <p className="text-sm">{registration.contest_title}</p>
             </div>
             <div>
               <p className="text-xs text-neutral-mid mb-1">Registered</p>
               <p className="text-sm flex items-center gap-1">
                 <Calendar className="w-3 h-3 text-neutral-mid" />
-                {format(new Date(registration.created_at), 'MMM d, yyyy h:mm a')}
+                {format(new Date(registration.registered_at), 'MMM d, yyyy h:mm a')}
               </p>
             </div>
           </div>
 
           <div>
             <p className="text-xs text-neutral-mid mb-1">How they heard about us</p>
-            <p className="text-sm">{howHeardOptions[registration.how_heard || ''] || registration.how_heard || '-'}</p>
+            <p className="text-sm">{howHeardOptions[registration.how_heard] || registration.how_heard || '-'}</p>
           </div>
 
           <div className="border-t border-neutral-light pt-4">
             <p className="text-xs text-neutral-mid mb-3">Update Status</p>
             <div className="flex gap-2">
               <button
-                onClick={() => onUpdateStatus('pending')}
+                onClick={() => onUpdateStatus('registered')}
                 className={`flex-1 px-3 py-2 text-sm font-medium rounded border transition-colors ${
-                  registration.status === 'pending'
+                  registration.status === 'registered'
                     ? 'bg-blue-100 border-blue-300 text-blue-700'
                     : 'border-neutral-light hover:bg-neutral-light/30'
                 }`}
               >
-                Pending
+                Registered
               </button>
               <button
-                onClick={() => onUpdateStatus('approved')}
+                onClick={() => onUpdateStatus('submitted')}
                 className={`flex-1 px-3 py-2 text-sm font-medium rounded border transition-colors ${
-                  registration.status === 'approved'
+                  registration.status === 'submitted'
                     ? 'bg-green-100 border-green-300 text-green-700'
                     : 'border-neutral-light hover:bg-neutral-light/30'
                 }`}
               >
-                Approved
+                Submitted
               </button>
               <button
-                onClick={() => onUpdateStatus('rejected')}
+                onClick={() => onUpdateStatus('disqualified')}
                 className={`flex-1 px-3 py-2 text-sm font-medium rounded border transition-colors ${
-                  registration.status === 'rejected'
+                  registration.status === 'disqualified'
                     ? 'bg-red-100 border-red-300 text-red-700'
                     : 'border-neutral-light hover:bg-neutral-light/30'
                 }`}
               >
-                Rejected
+                Disqualified
               </button>
             </div>
           </div>
