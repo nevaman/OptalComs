@@ -14,7 +14,10 @@ import { InsightDetail } from './pages/InsightDetail';
 import { Contact } from './pages/Contact';
 import { Opportunities } from './pages/Opportunities';
 import { TalentPage } from './pages/Talent';
-import { OpportunitiesManager } from './pages/admin/OpportunitiesManager';
+import { OpportunitiesDashboard } from './pages/admin/OpportunitiesDashboard';
+import { JobEditor } from './pages/admin/JobEditor';
+import { ContestEditor } from './pages/admin/ContestEditor';
+import { GrantEditor } from './pages/admin/GrantEditor';
 import { ContestRegistrations } from './pages/admin/ContestRegistrations';
 import { ApplicationsList } from './pages/admin/ApplicationsList';
 import { TalentList } from './pages/admin/TalentList';
@@ -73,7 +76,13 @@ function App() {
             <Route path="insights" element={<InsightsList />} />
             <Route path="insights/new" element={<InsightEditor />} />
             <Route path="insights/:id" element={<InsightEditor />} />
-            <Route path="opportunities" element={<OpportunitiesManager />} />
+            <Route path="opportunities" element={<OpportunitiesDashboard />} />
+            <Route path="opportunities/job/new" element={<JobEditor />} />
+            <Route path="opportunities/job/:id" element={<JobEditor />} />
+            <Route path="opportunities/contest/new" element={<ContestEditor />} />
+            <Route path="opportunities/contest/:id" element={<ContestEditor />} />
+            <Route path="opportunities/grant/new" element={<GrantEditor />} />
+            <Route path="opportunities/grant/:id" element={<GrantEditor />} />
             <Route path="contest-registrations" element={<ContestRegistrations />} />
             <Route path="applications" element={<ApplicationsList />} />
             <Route path="talent" element={<TalentList />} />

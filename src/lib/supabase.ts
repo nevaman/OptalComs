@@ -148,7 +148,7 @@ export type AdminRequest = {
 
 export type Opportunity = {
   id: string;
-  type: 'job' | 'contest';
+  type: 'job' | 'contest' | 'grant';
   title: string;
   slug: string;
   description: string;
@@ -157,6 +157,8 @@ export type Opportunity = {
   deadline: string | null;
   status: 'open' | 'closed' | 'draft';
   external_link: string | null;
+  metadata: Record<string, unknown>;
+  is_featured: boolean;
   created_at: string;
   updated_at: string;
 };
