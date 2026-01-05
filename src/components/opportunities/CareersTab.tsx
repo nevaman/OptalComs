@@ -14,7 +14,7 @@ import {
   X,
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { opportunitiesStore } from '../../lib/opportunitiesStore';
+import { supabase } from '../../lib/supabase';
 
 export interface CareerListing {
   id: string;
@@ -35,110 +35,6 @@ export interface CareerListing {
   is_featured: boolean;
   category: string;
 }
-
-const mockCareers: CareerListing[] = [
-  {
-    id: '1',
-    title: 'Senior UI/UX Designer',
-    company: 'Optal Creative',
-    location: 'Remote',
-    type: 'full-time',
-    experience_level: 'senior',
-    salary_range: '$90k - $120k',
-    description: 'We are looking for a Senior UI/UX Designer to join our growing team. You will work on high-impact projects for global brands.',
-    requirements: ['5+ years of UI/UX experience', 'Proficiency in Figma', 'Strong portfolio', 'Experience with design systems'],
-    benefits: ['Remote work', 'Health insurance', 'Learning budget', 'Flexible hours'],
-    is_internal: true,
-    posted_at: '2026-01-02T10:00:00Z',
-    is_featured: true,
-    category: 'Design',
-  },
-  {
-    id: '2',
-    title: 'Frontend Developer',
-    company: 'Optal Creative',
-    location: 'Remote / Hybrid',
-    type: 'full-time',
-    experience_level: 'mid',
-    salary_range: '$80k - $110k',
-    description: 'Join our development team to build beautiful, performant web applications using React and TypeScript.',
-    requirements: ['3+ years React experience', 'TypeScript proficiency', 'CSS/Tailwind expertise', 'Git workflow'],
-    benefits: ['Remote work', 'Stock options', 'Conference budget', '4-day work week'],
-    is_internal: true,
-    posted_at: '2026-01-01T14:00:00Z',
-    is_featured: true,
-    category: 'Engineering',
-  },
-  {
-    id: '3',
-    title: 'Communications Manager',
-    company: 'TechCorp Inc',
-    company_logo: 'https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=100',
-    location: 'New York, NY',
-    type: 'full-time',
-    experience_level: 'senior',
-    salary_range: '$100k - $140k',
-    description: 'Lead communications strategy for a fast-growing tech company. Work with executive team on PR and brand messaging.',
-    requirements: ['7+ years in communications', 'Tech industry experience', 'Media relations expertise', 'Crisis management'],
-    benefits: ['Competitive salary', 'Equity package', 'Premium healthcare', 'Unlimited PTO'],
-    is_internal: false,
-    external_link: 'https://example.com/jobs/1',
-    posted_at: '2025-12-28T09:00:00Z',
-    is_featured: false,
-    category: 'Marketing',
-  },
-  {
-    id: '4',
-    title: 'Brand Strategist',
-    company: 'Creative Agency X',
-    company_logo: 'https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg?auto=compress&cs=tinysrgb&w=100',
-    location: 'Los Angeles, CA',
-    type: 'full-time',
-    experience_level: 'mid',
-    description: 'Develop brand strategies for Fortune 500 clients. Lead client presentations and workshops.',
-    requirements: ['4+ years brand strategy', 'Agency experience preferred', 'Presentation skills', 'Research methodologies'],
-    benefits: ['Creative environment', 'Annual bonus', 'Training programs'],
-    is_internal: false,
-    external_link: 'https://example.com/jobs/2',
-    posted_at: '2025-12-25T11:00:00Z',
-    is_featured: false,
-    category: 'Strategy',
-  },
-  {
-    id: '5',
-    title: 'Motion Graphics Designer',
-    company: 'MediaHouse Studios',
-    company_logo: 'https://images.pexels.com/photos/3184339/pexels-photo-3184339.jpeg?auto=compress&cs=tinysrgb&w=100',
-    location: 'Remote',
-    type: 'contract',
-    experience_level: 'mid',
-    salary_range: '$60/hr - $80/hr',
-    description: 'Create stunning motion graphics for social media campaigns and video content.',
-    requirements: ['After Effects mastery', '3+ years experience', 'Social media formats', 'Quick turnaround'],
-    benefits: ['Flexible schedule', 'Creative freedom', 'Long-term contract potential'],
-    is_internal: false,
-    external_link: 'https://example.com/jobs/3',
-    posted_at: '2025-12-20T16:00:00Z',
-    is_featured: false,
-    category: 'Design',
-  },
-  {
-    id: '6',
-    title: 'Project Manager',
-    company: 'Optal Creative',
-    location: 'Remote',
-    type: 'full-time',
-    experience_level: 'mid',
-    salary_range: '$70k - $95k',
-    description: 'Manage multiple client projects simultaneously, ensuring on-time delivery and client satisfaction.',
-    requirements: ['3+ years PM experience', 'Agency background', 'Strong communication', 'Tool proficiency (Asana, Notion)'],
-    benefits: ['Remote work', 'Health insurance', 'Learning budget', 'Flexible hours'],
-    is_internal: true,
-    posted_at: '2025-12-18T10:00:00Z',
-    is_featured: false,
-    category: 'Operations',
-  },
-];
 
 const experienceLevels = [
   { value: 'entry', label: 'Entry Level' },
@@ -163,13 +59,27 @@ export function CareersTab() {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedJob, setSelectedJob] = useState<CareerListing | null>(null);
   const [showApplicationForm, setShowApplicationForm] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const loadData = () => setCareers(opportunitiesStore.getCareers());
-    loadData();
-    const unsubscribe = opportunitiesStore.subscribe(loadData);
-    return unsubscribe;
+    fetchCareers();
   }, []);
+
+  async function fetchCareers() {
+    try {
+      const { data, error } = await supabase
+        .from('careers')
+        .select('*')
+        .order('posted_at', { ascending: false });
+
+      if (error) throw error;
+      if (data) setCareers(data);
+    } catch (error) {
+      console.error('Error fetching careers:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   const filteredCareers = careers.filter((career) => {
     const matchesSearch =
@@ -504,9 +414,50 @@ function ApplicationFormModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsSubmitting(false);
-    setIsSubmitted(true);
+    
+    try {
+      let resumeUrl = null;
+
+      if (formData.resume) {
+        const fileExt = formData.resume.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('applications')
+          .upload(filePath, formData.resume);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('applications')
+          .getPublicUrl(filePath);
+          
+        resumeUrl = publicUrl;
+      }
+
+      const { error: insertError } = await supabase
+        .from('job_applications')
+        .insert({
+          career_id: job.id,
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          resume_url: resumeUrl,
+          portfolio_url: formData.portfolio,
+          cover_letter: formData.coverLetter,
+          status: 'pending'
+        });
+
+      if (insertError) throw insertError;
+
+      setIsSubmitted(true);
+    } catch (error) {
+      console.error('Error submitting application:', error);
+      alert('Failed to submit application. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (isSubmitted) {

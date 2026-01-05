@@ -16,7 +16,7 @@ import {
   Lightbulb,
 } from 'lucide-react';
 import { format, formatDistanceToNow, isPast } from 'date-fns';
-import { opportunitiesStore } from '../../lib/opportunitiesStore';
+import { supabase } from '../../lib/supabase';
 
 export interface Grant {
   id: string;
@@ -38,169 +38,6 @@ export interface Grant {
   funding_type: 'grant' | 'fellowship' | 'residency' | 'sponsorship';
   posted_at: string;
 }
-
-const mockGrants: Grant[] = [
-  {
-    id: '1',
-    title: 'Creative Innovation Fund',
-    organization: 'National Arts Foundation',
-    organization_logo: 'https://images.pexels.com/photos/3184418/pexels-photo-3184418.jpeg?auto=compress&cs=tinysrgb&w=100',
-    amount_min: 10000,
-    amount_max: 50000,
-    description: 'Supporting innovative creative projects that push boundaries in design, technology, and storytelling. We fund projects that explore new mediums and challenge conventional approaches.',
-    focus_areas: ['Digital Art', 'Interactive Media', 'Design Innovation', 'Cross-disciplinary Work'],
-    eligibility: [
-      'Individual artists or creative teams',
-      'Must be based in North America',
-      'Projects must be completed within 12 months',
-      'First-time applicants welcome',
-    ],
-    requirements: [
-      'Project proposal (max 5 pages)',
-      'Budget breakdown',
-      'Portfolio of previous work',
-      'Timeline and milestones',
-      'Two professional references',
-    ],
-    application_process: [
-      'Submit initial application online',
-      'Selected applicants invited for interview',
-      'Final decisions announced within 8 weeks',
-    ],
-    deadline: '2026-03-15T23:59:59Z',
-    status: 'open',
-    is_featured: true,
-    category: 'creative',
-    funding_type: 'grant',
-    posted_at: '2026-01-01T10:00:00Z',
-  },
-  {
-    id: '2',
-    title: 'Tech for Good Fellowship',
-    organization: 'Global Impact Initiative',
-    amount_min: 25000,
-    amount_max: 75000,
-    description: 'A 6-month fellowship program for developers and designers creating technology solutions for social challenges. Includes mentorship, workspace, and networking opportunities.',
-    focus_areas: ['Accessibility', 'Education', 'Healthcare', 'Environmental Solutions'],
-    eligibility: [
-      'Developers, designers, or product managers',
-      'Must commit to full-time fellowship',
-      'Open to international applicants',
-      'Existing prototype preferred but not required',
-    ],
-    requirements: [
-      'Application form with project concept',
-      'Resume/CV',
-      'Video pitch (3 minutes max)',
-      'Technical documentation if applicable',
-    ],
-    application_process: [
-      'Online application submission',
-      'Technical interview',
-      'Final presentation to selection committee',
-    ],
-    deadline: '2026-02-28T23:59:59Z',
-    status: 'open',
-    is_featured: true,
-    category: 'technology',
-    funding_type: 'fellowship',
-    posted_at: '2025-12-15T14:00:00Z',
-  },
-  {
-    id: '3',
-    title: 'Small Business Design Support',
-    organization: 'Creative Economy Fund',
-    organization_logo: 'https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg?auto=compress&cs=tinysrgb&w=100',
-    amount_min: 2500,
-    amount_max: 10000,
-    description: 'Micro-grants for small businesses and startups seeking professional design and branding services. Funds can be used to hire designers or cover design tool subscriptions.',
-    focus_areas: ['Brand Identity', 'Website Design', 'Marketing Materials', 'Product Design'],
-    eligibility: [
-      'Small businesses under 50 employees',
-      'Operating for at least 6 months',
-      'Revenue under $1M annually',
-      'Minority-owned businesses prioritized',
-    ],
-    requirements: [
-      'Business registration documents',
-      'Brief description of design needs',
-      'Quote from design professional',
-    ],
-    application_process: [
-      'Rolling applications accepted',
-      'Decisions within 2 weeks',
-      'Funds distributed directly to design provider',
-    ],
-    deadline: '2026-06-30T23:59:59Z',
-    status: 'open',
-    is_featured: false,
-    category: 'general',
-    funding_type: 'grant',
-    posted_at: '2025-11-01T09:00:00Z',
-  },
-  {
-    id: '4',
-    title: 'Communications Research Grant',
-    organization: 'Institute for Media Studies',
-    amount_min: 15000,
-    amount_max: 30000,
-    description: 'Funding for research projects exploring the intersection of communications, technology, and society. Academic and independent researchers welcome.',
-    focus_areas: ['Digital Communications', 'Media Ethics', 'Audience Research', 'Crisis Communications'],
-    eligibility: [
-      'Researchers with relevant background',
-      'Academic affiliation not required',
-      'Projects must produce publishable findings',
-    ],
-    requirements: [
-      'Research proposal',
-      'Methodology outline',
-      'Literature review',
-      'Publication plan',
-    ],
-    application_process: [
-      'Submit proposal online',
-      'Peer review process',
-      'Committee decision within 12 weeks',
-    ],
-    deadline: '2026-01-31T23:59:59Z',
-    status: 'closing_soon',
-    is_featured: false,
-    category: 'research',
-    funding_type: 'grant',
-    posted_at: '2025-10-15T11:00:00Z',
-  },
-  {
-    id: '5',
-    title: 'Artist Residency Program',
-    organization: 'Creative Collective',
-    amount_min: 5000,
-    amount_max: 5000,
-    description: '3-month residency program providing studio space, accommodation, and a stipend for artists working in digital media and interactive design.',
-    focus_areas: ['Digital Art', 'New Media', 'Interactive Installation', 'VR/AR'],
-    eligibility: [
-      'Artists with established practice',
-      'Must be available for full residency period',
-      'Open to international artists',
-    ],
-    requirements: [
-      'Portfolio',
-      'Project proposal for residency',
-      'Artist statement',
-      'References',
-    ],
-    application_process: [
-      'Application via online form',
-      'Portfolio review',
-      'Interview for shortlisted candidates',
-    ],
-    deadline: '2025-12-01T23:59:59Z',
-    status: 'closed',
-    is_featured: false,
-    category: 'creative',
-    funding_type: 'residency',
-    posted_at: '2025-09-01T10:00:00Z',
-  },
-];
 
 const categoryLabels = {
   creative: 'Creative & Arts',
@@ -229,12 +66,24 @@ export function GrantsTab() {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [selectedGrant, setSelectedGrant] = useState<Grant | null>(null);
   const [showApplicationForm, setShowApplicationForm] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const loadData = () => setGrants(opportunitiesStore.getGrants());
-    loadData();
-    const unsubscribe = opportunitiesStore.subscribe(loadData);
-    return unsubscribe;
+    async function fetchGrants() {
+      try {
+        const { data } = await supabase
+          .from('grants')
+          .select('*')
+          .order('deadline', { ascending: true });
+        
+        if (data) setGrants(data);
+      } catch (error) {
+        console.error('Error fetching grants:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchGrants();
   }, []);
 
   const filteredGrants = grants.filter((grant) => {
@@ -635,9 +484,29 @@ function GrantApplicationModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsSubmitting(false);
-    setIsSubmitted(true);
+    
+    try {
+      const { error } = await supabase.from('grant_applications').insert({
+        grant_id: grant.id,
+        applicant_name: formData.name,
+        organization_name: formData.organization,
+        email: formData.email,
+        phone: '', // Not in form data but in DB schema, defaulting to empty or need to add field
+        project_title: formData.projectTitle,
+        project_description: formData.projectSummary,
+        requested_amount: parseInt(formData.requestedAmount.replace(/[^0-9]/g, '')),
+        status: 'pending'
+      });
+
+      if (error) throw error;
+      
+      setIsSubmitted(true);
+    } catch (error) {
+      console.error('Error submitting grant application:', error);
+      alert('Failed to submit application. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (isSubmitted) {

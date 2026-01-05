@@ -1,49 +1,53 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Plus, Search, Filter, MoreHorizontal, Briefcase, Trophy, Clock, CheckCircle, XCircle } from 'lucide-react';
-import { supabase, Opportunity } from '../../lib/supabase';
+import { Plus, Search, Briefcase, Trophy, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { supabase, Career, Contest } from '../../lib/supabase';
 import { format } from 'date-fns';
 import { Button } from '../../components/ui/Button';
 
 export function OpportunitiesList() {
   const navigate = useNavigate();
-  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
+  const [careers, setCareers] = useState<Career[]>([]);
+  const [contests, setContests] = useState<Contest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [typeFilter, setTypeFilter] = useState<'all' | 'job' | 'contest'>('all');
+  const [activeTab, setActiveTab] = useState<'careers' | 'contests'>('careers');
 
   useEffect(() => {
-    fetchOpportunities();
+    fetchData();
   }, []);
 
-  async function fetchOpportunities() {
+  async function fetchData() {
     setIsLoading(true);
-    const { data, error } = await supabase
-      .from('opportunities')
+    
+    const { data: careersData } = await supabase
+      .from('careers')
+      .select('*')
+      .order('created_at', { ascending: false });
+      
+    const { data: contestsData } = await supabase
+      .from('contests')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (!error && data) {
-      setOpportunities(data);
-    }
+    if (careersData) setCareers(careersData);
+    if (contestsData) setContests(contestsData);
+    
     setIsLoading(false);
   }
 
-  const filteredOpportunities = opportunities.filter((op) => {
-    const matchesSearch = op.title.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = typeFilter === 'all' || op.type === typeFilter;
-    return matchesSearch && matchesType;
-  });
+  const filteredCareers = careers.filter((c) => 
+    c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    c.company.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredContests = contests.filter((c) => 
+    c.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'open':
-        return <CheckCircle className="w-4 h-4 text-green-500" />;
-      case 'closed':
-        return <XCircle className="w-4 h-4 text-red-500" />;
-      default:
-        return <Clock className="w-4 h-4 text-amber-500" />;
-    }
+    // Determine status logic if not explicit field
+    return <Clock className="w-4 h-4 text-amber-500" />;
   };
 
   return (
@@ -53,10 +57,16 @@ export function OpportunitiesList() {
           <h1 className="text-2xl font-display font-bold">Opportunities</h1>
           <p className="text-neutral-mid mt-1">Manage careers and contests</p>
         </div>
-        <Button onClick={() => navigate('/admin/opportunities/new')} variant="primary">
-          <Plus className="w-4 h-4 mr-2" />
-          Add Opportunity
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => navigate('/admin/careers/new')} variant="secondary">
+            <Plus className="w-4 h-4 mr-2" />
+            Add Career
+          </Button>
+          <Button onClick={() => navigate('/admin/contests/new')} variant="primary">
+            <Plus className="w-4 h-4 mr-2" />
+            Add Contest
+          </Button>
+        </div>
       </div>
 
       <div className="bg-surface rounded border border-neutral-light overflow-hidden">
@@ -65,100 +75,111 @@ export function OpportunitiesList() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-mid" />
             <input
               type="text"
-              placeholder="Search opportunities..."
+              placeholder="Search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="input-field pl-10 w-full"
+              className="w-full pl-10 pr-4 py-2 border border-neutral-light rounded focus:border-orange focus:outline-none"
             />
           </div>
           <div className="flex gap-2">
-            {(['all', 'job', 'contest'] as const).map((t) => (
-              <button
-                key={t}
-                onClick={() => setTypeFilter(t)}
-                className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
-                  typeFilter === t
-                    ? 'bg-primary text-surface'
-                    : 'bg-neutral-light text-neutral-mid hover:bg-neutral-light/80'
-                }`}
-              >
-                {t === 'all' ? 'All' : t === 'job' ? 'Jobs' : 'Contests'}
-              </button>
-            ))}
+            <button
+              onClick={() => setActiveTab('careers')}
+              className={`px-4 py-2 text-sm font-medium rounded transition-colors ${
+                activeTab === 'careers'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'bg-neutral-light text-neutral-mid hover:bg-neutral-light/80'
+              }`}
+            >
+              Careers ({filteredCareers.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('contests')}
+              className={`px-4 py-2 text-sm font-medium rounded transition-colors ${
+                activeTab === 'contests'
+                  ? 'bg-orange/10 text-orange'
+                  : 'bg-neutral-light text-neutral-mid hover:bg-neutral-light/80'
+              }`}
+            >
+              Contests ({filteredContests.length})
+            </button>
           </div>
         </div>
 
         {isLoading ? (
-          <div className="p-8 text-center">
-            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-neutral-mid">Loading opportunities...</p>
-          </div>
-        ) : filteredOpportunities.length > 0 ? (
+          <div className="p-8 text-center animate-pulse">Loading...</div>
+        ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="bg-neutral-light/30">
                   <th className="px-6 py-4 font-semibold">Title</th>
-                  <th className="px-6 py-4 font-semibold">Type</th>
+                  <th className="px-6 py-4 font-semibold">
+                    {activeTab === 'careers' ? 'Company' : 'Category'}
+                  </th>
                   <th className="px-6 py-4 font-semibold">Status</th>
-                  <th className="px-6 py-4 font-semibold">Deadline</th>
+                  <th className="px-6 py-4 font-semibold">Posted/Start</th>
                   <th className="px-6 py-4 font-semibold text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-light">
-                {filteredOpportunities.map((op) => (
-                  <tr key={op.id} className="hover:bg-neutral-light/20 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="font-medium">{op.title}</div>
-                      <div className="text-xs text-neutral-mid truncate max-w-[200px]">{op.slug}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium ${
-                        op.type === 'job' ? 'bg-blue-100 text-blue-700' : 'bg-orange/10 text-orange'
-                      }`}>
-                        {op.type === 'job' ? (
-                          <Briefcase className="w-3 h-3" />
+                {activeTab === 'careers' ? (
+                  filteredCareers.map((item) => (
+                    <tr key={item.id} className="hover:bg-neutral-light/20 transition-colors">
+                      <td className="px-6 py-4 font-medium">{item.title}</td>
+                      <td className="px-6 py-4">{item.company}</td>
+                      <td className="px-6 py-4">
+                        {item.is_internal ? (
+                          <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded">Internal</span>
                         ) : (
-                          <Trophy className="w-3 h-3" />
+                          <span className="px-2 py-1 bg-neutral-light text-neutral-mid text-xs rounded">External</span>
                         )}
-                        {op.type === 'job' ? 'Career' : 'Contest'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        {getStatusIcon(op.status)}
-                        <span className="capitalize">{op.status}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-neutral-mid">
-                      {op.deadline ? format(new Date(op.deadline), 'MMM d, yyyy') : 'No deadline'}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex justify-end gap-2">
+                      </td>
+                      <td className="px-6 py-4 text-neutral-mid">
+                        {format(new Date(item.posted_at), 'MMM d, yyyy')}
+                      </td>
+                      <td className="px-6 py-4 text-right">
                         <Link
-                          to={`/admin/opportunities/${op.id}`}
-                          className="p-2 text-neutral-mid hover:text-primary transition-colors"
+                          to={`/admin/careers/${item.id}`}
+                          className="text-primary hover:text-orange font-medium"
                         >
                           Edit
                         </Link>
-                        <button className="p-2 text-neutral-mid hover:text-red-500 transition-colors">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </button>
-                      </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  filteredContests.map((item) => (
+                    <tr key={item.id} className="hover:bg-neutral-light/20 transition-colors">
+                      <td className="px-6 py-4 font-medium">{item.title}</td>
+                      <td className="px-6 py-4 capitalize">{item.category}</td>
+                      <td className="px-6 py-4 capitalize">{item.status}</td>
+                      <td className="px-6 py-4 text-neutral-mid">
+                        {format(new Date(item.start_date), 'MMM d, yyyy')}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <Link
+                          to={`/admin/contests/${item.id}`}
+                          className="text-primary hover:text-orange font-medium"
+                        >
+                          Edit
+                        </Link>
+                      </td>
+                    </tr>
+                  ))
+                )}
+                {((activeTab === 'careers' && filteredCareers.length === 0) || 
+                  (activeTab === 'contests' && filteredContests.length === 0)) && (
+                  <tr>
+                    <td colSpan={5} className="p-8 text-center text-neutral-mid">
+                      No items found.
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
-          </div>
-        ) : (
-          <div className="p-12 text-center">
-            <Briefcase className="w-12 h-12 text-neutral-light mx-auto mb-4" />
-            <p className="text-neutral-mid">No opportunities found</p>
           </div>
         )}
       </div>
     </div>
   );
 }
-

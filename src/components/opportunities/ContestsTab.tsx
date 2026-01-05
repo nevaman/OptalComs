@@ -14,7 +14,7 @@ import {
   Gift,
 } from 'lucide-react';
 import { format, formatDistanceToNow, isPast, isFuture } from 'date-fns';
-import { opportunitiesStore } from '../../lib/opportunitiesStore';
+import { supabase } from '../../lib/supabase';
 
 export interface Contest {
   id: string;
@@ -44,7 +44,6 @@ export interface Contest {
 export interface Winner {
   id: string;
   contest_id: string;
-  contest_title: string;
   name: string;
   photo?: string;
   place: number;
@@ -52,179 +51,9 @@ export interface Winner {
   project_image?: string;
   testimonial?: string;
   awarded_at: string;
+  contest?: { title: string }; // For display
+  contest_title?: string; // Fallback
 }
-
-const mockContests: Contest[] = [
-  {
-    id: '1',
-    title: 'Brand Identity Challenge 2026',
-    slug: 'brand-identity-challenge-2026',
-    category: 'design',
-    description: 'Create a complete brand identity system for a fictional sustainable fashion startup. Show us your vision for the future of ethical fashion branding.',
-    brief: 'Design a comprehensive brand identity including logo, color palette, typography, and brand guidelines for "EcoThread" - a sustainable fashion brand targeting Gen Z consumers.',
-    prizes: [
-      { place: '1st Place', reward: '$5,000', description: 'Plus mentorship session with industry leaders' },
-      { place: '2nd Place', reward: '$2,500', description: 'Plus premium design tool subscriptions' },
-      { place: '3rd Place', reward: '$1,000', description: 'Plus feature in our Insights publication' },
-    ],
-    judges: [
-      { name: 'Sarah Chen', title: 'Creative Director, Brand Studio' },
-      { name: 'Michael Torres', title: 'Head of Design, TechCorp' },
-      { name: 'Emma Williams', title: 'Founder, Design Collective' },
-    ],
-    timeline: [
-      { stage: 'Registration Opens', date: '2026-01-01' },
-      { stage: 'Submissions Open', date: '2026-01-15' },
-      { stage: 'Submissions Close', date: '2026-02-15' },
-      { stage: 'Winners Announced', date: '2026-03-01' },
-    ],
-    requirements: [
-      'Logo design (multiple variations)',
-      'Color palette with rationale',
-      'Typography system',
-      'Brand guidelines document',
-      'Three mockup applications',
-    ],
-    submission_guidelines: [
-      'Submit as a single PDF (max 20 pages)',
-      'Include a 200-word design rationale',
-      'All work must be original',
-      'No AI-generated content',
-    ],
-    eligibility: [
-      'Open to designers worldwide',
-      'Must be 18 years or older',
-      'Individual or team entries accepted',
-    ],
-    sponsors: [
-      { name: 'Figma' },
-      { name: 'Adobe' },
-      { name: 'Optal Creative' },
-    ],
-    status: 'open',
-    entry_count: 247,
-    start_date: '2026-01-15T00:00:00Z',
-    end_date: '2026-02-15T23:59:59Z',
-    results_date: '2026-03-01T12:00:00Z',
-    featured_image: 'https://images.pexels.com/photos/3184418/pexels-photo-3184418.jpeg?auto=compress&cs=tinysrgb&w=800',
-    is_featured: true,
-  },
-  {
-    id: '2',
-    title: 'Code for Good Hackathon',
-    slug: 'code-for-good-hackathon',
-    category: 'development',
-    description: 'Build solutions that address social impact challenges. Focus on accessibility, sustainability, or community support.',
-    brief: 'Develop a working prototype that addresses one of three challenge tracks: Accessibility, Environmental Impact, or Community Support.',
-    prizes: [
-      { place: '1st Place', reward: '$10,000', description: 'Plus cloud credits and mentorship' },
-      { place: '2nd Place', reward: '$5,000' },
-      { place: '3rd Place', reward: '$2,500' },
-    ],
-    judges: [
-      { name: 'Alex Rivera', title: 'CTO, ImpactTech' },
-      { name: 'Dr. Lisa Park', title: 'Professor, MIT Media Lab' },
-    ],
-    timeline: [
-      { stage: 'Registration', date: '2026-02-01' },
-      { stage: 'Hackathon Weekend', date: '2026-02-20' },
-      { stage: 'Winners Announced', date: '2026-02-22' },
-    ],
-    requirements: [
-      'Working prototype',
-      'Source code repository',
-      'Demo video (3 min max)',
-      'Technical documentation',
-    ],
-    submission_guidelines: [
-      'Team size: 1-4 members',
-      'Must use open-source technologies',
-      'Include setup instructions',
-    ],
-    eligibility: [
-      'Open to developers globally',
-      'Students and professionals welcome',
-    ],
-    sponsors: [
-      { name: 'Google Cloud' },
-      { name: 'GitHub' },
-    ],
-    status: 'upcoming',
-    entry_count: 0,
-    start_date: '2026-02-20T09:00:00Z',
-    end_date: '2026-02-22T18:00:00Z',
-    is_featured: true,
-  },
-  {
-    id: '3',
-    title: 'Communications Excellence Awards',
-    slug: 'communications-excellence-awards',
-    category: 'strategy',
-    description: 'Showcase your best communications campaigns from the past year. Categories include Crisis Communications, Internal Communications, and PR Campaign.',
-    brief: 'Submit case studies demonstrating exceptional communications strategy and execution.',
-    prizes: [
-      { place: 'Gold Award', reward: 'Trophy + $3,000' },
-      { place: 'Silver Award', reward: 'Trophy + $1,500' },
-      { place: 'Bronze Award', reward: 'Trophy + $750' },
-    ],
-    judges: [
-      { name: 'Jennifer Walsh', title: 'VP Communications, Fortune 500' },
-      { name: 'Robert Kim', title: 'PR Agency Founder' },
-    ],
-    timeline: [
-      { stage: 'Entries Open', date: '2025-11-01' },
-      { stage: 'Entries Close', date: '2025-12-15' },
-      { stage: 'Awards Ceremony', date: '2026-01-20' },
-    ],
-    requirements: [
-      'Case study document',
-      'Campaign metrics',
-      'Supporting materials',
-    ],
-    submission_guidelines: [
-      'Max 10-page case study',
-      'Include measurable results',
-    ],
-    eligibility: [
-      'Communications professionals',
-      'Agencies and in-house teams',
-    ],
-    sponsors: [],
-    status: 'completed',
-    entry_count: 156,
-    start_date: '2025-11-01T00:00:00Z',
-    end_date: '2025-12-15T23:59:59Z',
-    results_date: '2026-01-20T18:00:00Z',
-    is_featured: false,
-  },
-];
-
-const mockWinners: Winner[] = [
-  {
-    id: '1',
-    contest_id: '3',
-    contest_title: 'Communications Excellence Awards',
-    name: 'Marina Gonzalez',
-    photo: 'https://images.pexels.com/photos/3776166/pexels-photo-3776166.jpeg?auto=compress&cs=tinysrgb&w=200',
-    place: 1,
-    project_title: 'Climate Action Campaign',
-    project_image: 'https://images.pexels.com/photos/3184325/pexels-photo-3184325.jpeg?auto=compress&cs=tinysrgb&w=400',
-    testimonial: 'Winning this award validated our team\'s innovative approach to sustainability communications.',
-    awarded_at: '2026-01-20T18:00:00Z',
-  },
-  {
-    id: '2',
-    contest_id: '3',
-    contest_title: 'Communications Excellence Awards',
-    name: 'David Chen',
-    photo: 'https://images.pexels.com/photos/3777564/pexels-photo-3777564.jpeg?auto=compress&cs=tinysrgb&w=200',
-    place: 2,
-    project_title: 'Internal Engagement Revolution',
-    project_image: 'https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg?auto=compress&cs=tinysrgb&w=400',
-    testimonial: 'The recognition from industry peers means everything to our team.',
-    awarded_at: '2026-01-20T18:00:00Z',
-  },
-];
 
 const categoryColors = {
   design: 'bg-pink-100 text-pink-700',
@@ -247,15 +76,38 @@ export function ContestsTab() {
   const [activeView, setActiveView] = useState<'active' | 'past' | 'winners'>('active');
   const [selectedContest, setSelectedContest] = useState<Contest | null>(null);
   const [showSubmissionForm, setShowSubmissionForm] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const loadData = () => {
-      setContests(opportunitiesStore.getContests());
-      setWinners(opportunitiesStore.getWinners());
-    };
-    loadData();
-    const unsubscribe = opportunitiesStore.subscribe(loadData);
-    return unsubscribe;
+    async function fetchData() {
+      try {
+        const { data: contestsData } = await supabase
+          .from('contests')
+          .select('*')
+          .order('start_date', { ascending: false });
+        
+        if (contestsData) setContests(contestsData);
+
+        const { data: winnersData } = await supabase
+          .from('contest_winners')
+          .select('*, contest:contests(title)')
+          .order('awarded_at', { ascending: false });
+          
+        if (winnersData) {
+          // Flatten the contest title
+          const formattedWinners = winnersData.map(w => ({
+            ...w,
+            contest_title: w.contest?.title || ''
+          }));
+          setWinners(formattedWinners);
+        }
+      } catch (error) {
+        console.error('Error fetching contests data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchData();
   }, []);
 
   const activeContests = contests.filter((c) => c.status === 'open' || c.status === 'upcoming');
@@ -566,13 +418,18 @@ function ContestDetailModal({
           <div>
             <h3 className="font-display font-bold text-lg mb-3">Timeline</h3>
             <div className="space-y-2">
-              {contest.timeline.map((item, i) => (
-                <div key={i} className="flex items-center gap-4">
-                  <div className="w-24 text-sm text-neutral-mid">{format(new Date(item.date), 'MMM d')}</div>
-                  <div className="w-3 h-3 rounded-full bg-orange" />
-                  <div className="text-sm">{item.stage}</div>
-                </div>
-              ))}
+              {contest.timeline.map((item, i) => {
+                const date = item.date ? new Date(item.date) : null;
+                const dateString = date && !isNaN(date.getTime()) ? format(date, 'MMM d') : 'TBD';
+                
+                return (
+                  <div key={i} className="flex items-center gap-4">
+                    <div className="w-24 text-sm text-neutral-mid">{dateString}</div>
+                    <div className="w-3 h-3 rounded-full bg-orange" />
+                    <div className="text-sm">{item.stage}</div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -647,7 +504,9 @@ function ContestSubmissionModal({
     country: '',
     occupation: '',
     portfolio: '',
-    experience: '',
+    age: '',
+    employmentStatus: '',
+    incomeLevel: '',
     howHeard: '',
     agreeToTerms: false,
   });
@@ -664,25 +523,35 @@ function ContestSubmissionModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    const code = generateCode();
-    opportunitiesStore.addRegistration({
-      contest_id: contest.id,
-      contest_title: contest.title,
-      registration_code: code,
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      country: formData.country,
-      occupation: formData.occupation,
-      experience: formData.experience,
-      portfolio: formData.portfolio,
-      how_heard: formData.howHeard,
-      registered_at: new Date().toISOString(),
-      status: 'registered',
-    });
-    setRegistrationCode(code);
-    setIsSubmitting(false);
+    
+    try {
+      const code = generateCode();
+      const { error } = await supabase.from('contest_registrations').insert({
+        contest_id: contest.id,
+        registration_code: code,
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        country: formData.country,
+        occupation: formData.occupation,
+        experience: formData.experience,
+        portfolio: formData.portfolio,
+        age: null,
+        employment_status: formData.employmentStatus,
+        income_level: formData.incomeLevel,
+        how_heard: formData.howHeard,
+        status: 'registered'
+      });
+
+      if (error) throw error;
+
+      setRegistrationCode(code);
+    } catch (error) {
+      console.error('Error registering for contest:', error);
+      alert('Failed to register. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const copyCode = () => {
@@ -856,19 +725,50 @@ function ContestSubmissionModal({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Experience Level *</label>
+              <label className="block text-sm font-medium mb-1">Age *</label>
+              <input
+                type="number"
+                required
+                min="18"
+                value={formData.age}
+                onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+                className="w-full px-3 py-2 border border-neutral-light rounded-lg focus:border-orange focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Employment Status *</label>
               <select
                 required
-                value={formData.experience}
-                onChange={(e) => setFormData({ ...formData, experience: e.target.value })}
+                value={formData.employmentStatus}
+                onChange={(e) => setFormData({ ...formData, employmentStatus: e.target.value })}
                 className="w-full px-3 py-2 border border-neutral-light rounded-lg focus:border-orange focus:outline-none bg-surface"
               >
-                <option value="">Select level</option>
+                <option value="">Select status</option>
+                <option value="employed_full_time">Employed Full-time</option>
+                <option value="employed_part_time">Employed Part-time</option>
+                <option value="freelance">Freelance / Self-employed</option>
                 <option value="student">Student</option>
-                <option value="junior">Junior (0-2 years)</option>
-                <option value="mid">Mid-level (2-5 years)</option>
-                <option value="senior">Senior (5+ years)</option>
-                <option value="lead">Lead / Director</option>
+                <option value="unemployed">Unemployed</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Income Level *</label>
+              <select
+                required
+                value={formData.incomeLevel}
+                onChange={(e) => setFormData({ ...formData, incomeLevel: e.target.value })}
+                className="w-full px-3 py-2 border border-neutral-light rounded-lg focus:border-orange focus:outline-none bg-surface"
+              >
+                <option value="">Select range</option>
+                <option value="under_25k">Under $25,000</option>
+                <option value="25k_50k">$25,000 - $50,000</option>
+                <option value="50k_100k">$50,000 - $100,000</option>
+                <option value="100k_plus">$100,000+</option>
+                <option value="prefer_not_to_say">Prefer not to say</option>
               </select>
             </div>
           </div>

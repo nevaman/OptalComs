@@ -22,14 +22,44 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Button } from '../../components/ui/Button';
-import { opportunitiesStore, ContestRegistration } from '../../lib/opportunitiesStore';
+import { supabase } from '../../lib/supabase';
 
-const experienceLevels: Record<string, string> = {
+// Helper interface for registration with contest title
+interface RegistrationWithContest {
+  id: string;
+  contest_id: string;
+  registration_code: string;
+  name: string;
+  email: string;
+  phone?: string;
+  country: string;
+  occupation: string;
+  age: number | null;
+  employment_status: string | null;
+  income_level: string | null;
+  portfolio?: string;
+  how_heard?: string;
+  registered_at: string;
+  status: 'registered' | 'submitted' | 'disqualified';
+  contest?: { title: string };
+  contest_title?: string; // Derived
+}
+
+const employmentStatusLabels: Record<string, string> = {
+  employed_full_time: 'Employed Full-time',
+  employed_part_time: 'Employed Part-time',
+  freelance: 'Freelance',
   student: 'Student',
-  junior: 'Junior (0-2 years)',
-  mid: 'Mid-level (2-5 years)',
-  senior: 'Senior (5+ years)',
-  lead: 'Lead / Director',
+  unemployed: 'Unemployed',
+  other: 'Other',
+};
+
+const incomeLevelLabels: Record<string, string> = {
+  under_25k: 'Under $25k',
+  '25k_50k': '$25k - $50k',
+  '50k_100k': '$50k - $100k',
+  '100k_plus': '$100k+',
+  prefer_not_to_say: 'Prefer not to say',
 };
 
 const howHeardOptions: Record<string, string> = {
@@ -45,23 +75,44 @@ export function ContestRegistrations() {
   const [searchParams] = useSearchParams();
   const contestIdFilter = searchParams.get('contest');
 
-  const [registrations, setRegistrations] = useState<ContestRegistration[]>([]);
+  const [registrations, setRegistrations] = useState<RegistrationWithContest[]>([]);
   const [contests, setContests] = useState<{ id: string; title: string }[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [contestFilter, setContestFilter] = useState<string>(contestIdFilter || 'all');
-  const [selectedRegistration, setSelectedRegistration] = useState<ContestRegistration | null>(null);
+  const [selectedRegistration, setSelectedRegistration] = useState<RegistrationWithContest | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    loadData();
-    const unsubscribe = opportunitiesStore.subscribe(loadData);
-    return unsubscribe;
+    fetchData();
   }, []);
 
-  function loadData() {
-    setRegistrations(opportunitiesStore.getContestRegistrations());
-    setContests(opportunitiesStore.getContests().map((c) => ({ id: c.id, title: c.title })));
+  async function fetchData() {
+    setIsLoading(true);
+    try {
+      // Fetch contests for filter
+      const { data: contestsData } = await supabase.from('contests').select('id, title');
+      if (contestsData) setContests(contestsData);
+
+      // Fetch registrations
+      const { data: regsData, error } = await supabase
+        .from('contest_registrations')
+        .select('*, contest:contests(title)')
+        .order('registered_at', { ascending: false });
+
+      if (regsData) {
+        const formattedRegs = regsData.map((reg: any) => ({
+          ...reg,
+          contest_title: reg.contest?.title || 'Unknown Contest'
+        }));
+        setRegistrations(formattedRegs);
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   const filteredRegistrations = registrations.filter((reg) => {
@@ -75,8 +126,20 @@ export function ContestRegistrations() {
     return matchesSearch && matchesStatus && matchesContest;
   });
 
-  const updateStatus = (id: string, status: ContestRegistration['status']) => {
-    opportunitiesStore.updateRegistration(id, { status });
+  const updateStatus = async (id: string, status: RegistrationWithContest['status']) => {
+    const { error } = await supabase
+      .from('contest_registrations')
+      .update({ status })
+      .eq('id', id);
+
+    if (error) {
+      alert('Error updating status');
+    } else {
+      setRegistrations(prev => prev.map(r => r.id === id ? { ...r, status } : r));
+      if (selectedRegistration?.id === id) {
+        setSelectedRegistration(prev => prev ? { ...prev, status } : null);
+      }
+    }
   };
 
   const copyCode = (code: string) => {
@@ -84,14 +147,16 @@ export function ContestRegistrations() {
   };
 
   const exportCSV = () => {
-    const headers = ['Name', 'Email', 'Phone', 'Country', 'Occupation', 'Experience', 'Portfolio', 'Registration Code', 'Contest', 'Status', 'Registered At'];
+    const headers = ['Name', 'Email', 'Phone', 'Country', 'Occupation', 'Age', 'Employment Status', 'Income Level', 'Portfolio', 'Registration Code', 'Contest', 'Status', 'Registered At'];
     const rows = filteredRegistrations.map((reg) => [
       reg.name,
       reg.email,
       reg.phone,
       reg.country,
       reg.occupation,
-      experienceLevels[reg.experience] || reg.experience,
+      reg.age,
+      employmentStatusLabels[reg.employment_status || ''] || reg.employment_status,
+      incomeLevelLabels[reg.income_level || ''] || reg.income_level,
       reg.portfolio,
       reg.registration_code,
       reg.contest_title,
@@ -233,7 +298,7 @@ export function ContestRegistrations() {
                   <th className="px-4 py-3 font-semibold">Code</th>
                   <th className="px-4 py-3 font-semibold hidden md:table-cell">Contest</th>
                   <th className="px-4 py-3 font-semibold hidden lg:table-cell">Country</th>
-                  <th className="px-4 py-3 font-semibold hidden lg:table-cell">Experience</th>
+                  <th className="px-4 py-3 font-semibold hidden lg:table-cell">Status</th>
                   <th className="px-4 py-3 font-semibold">Status</th>
                   <th className="px-4 py-3 font-semibold text-right">Actions</th>
                 </tr>
@@ -277,7 +342,7 @@ export function ContestRegistrations() {
                     </td>
                     <td className="px-4 py-3 hidden lg:table-cell">
                       <span className="text-sm text-neutral-mid">
-                        {experienceLevels[reg.experience] || reg.experience}
+                        {employmentStatusLabels[reg.employment_status || ''] || reg.employment_status}
                       </span>
                     </td>
                     <td className="px-4 py-3">{getStatusBadge(reg.status)}</td>
@@ -352,9 +417,9 @@ function RegistrationDetailModal({
   onClose,
   onUpdateStatus,
 }: {
-  registration: ContestRegistration;
+  registration: RegistrationWithContest;
   onClose: () => void;
-  onUpdateStatus: (status: ContestRegistration['status']) => void;
+  onUpdateStatus: (status: RegistrationWithContest['status']) => void;
 }) {
   const copyCode = () => {
     navigator.clipboard.writeText(registration.registration_code);
@@ -418,10 +483,24 @@ function RegistrationDetailModal({
               </p>
             </div>
             <div>
-              <p className="text-xs text-neutral-mid mb-1">Experience</p>
-              <p className="text-sm flex items-center gap-1">
-                <Briefcase className="w-3 h-3 text-neutral-mid" />
-                {experienceLevels[registration.experience] || registration.experience}
+              <p className="text-xs text-neutral-mid mb-1">Age</p>
+              <p className="text-sm">
+                {registration.age || '-'}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs text-neutral-mid mb-1">Employment Status</p>
+              <p className="text-sm">
+                {employmentStatusLabels[registration.employment_status || ''] || registration.employment_status || '-'}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-neutral-mid mb-1">Income Level</p>
+              <p className="text-sm">
+                {incomeLevelLabels[registration.income_level || ''] || registration.income_level || '-'}
               </p>
             </div>
           </div>

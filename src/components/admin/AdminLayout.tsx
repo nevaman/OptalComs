@@ -26,6 +26,7 @@ const navItems = [
   { href: '/admin/team', label: 'Team', icon: Users },
   { href: '/admin/insights', label: 'Insights', icon: FileText },
   { href: '/admin/opportunities', label: 'Opportunities', icon: Trophy },
+  { href: '/admin/registrations', label: 'Contest Entries', icon: Users },
   { href: '/admin/applications', label: 'Applications', icon: ClipboardList },
   { href: '/admin/talent', label: 'Talent Network', icon: Star },
   { href: '/admin/talent-settings', label: 'Talent Page', icon: Sliders },
