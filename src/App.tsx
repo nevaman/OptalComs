@@ -1,4 +1,4 @@
-import { HashRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { Layout } from './components/layout/Layout';
 import { AdminLayout } from './components/admin/AdminLayout';
@@ -14,7 +14,6 @@ import { InsightDetail } from './pages/InsightDetail';
 import { Contact } from './pages/Contact';
 import { Opportunities } from './pages/Opportunities';
 import { TalentPage } from './pages/Talent';
-import { OpportunitiesManager } from './pages/admin/OpportunitiesManager';
 import { ContestRegistrations } from './pages/admin/ContestRegistrations';
 import { ApplicationsList } from './pages/admin/ApplicationsList';
 import { TalentList } from './pages/admin/TalentList';
@@ -32,11 +31,12 @@ import { InsightEditor } from './pages/admin/InsightEditor';
 import { Settings } from './pages/admin/Settings';
 import { ContactSubmissions } from './pages/admin/ContactSubmissions';
 import { AccessRequests } from './pages/admin/AccessRequests';
+import { OpportunitiesManager } from './pages/admin/OpportunitiesManager';
 
 function App() {
   return (
     <AuthProvider>
-      <HashRouter>
+      <BrowserRouter>
         <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<Home />} />
@@ -84,7 +84,7 @@ function App() {
             <Route path="settings" element={<Settings />} />
           </Route>
         </Routes>
-      </HashRouter>
+      </BrowserRouter>
     </AuthProvider>
   );
 }
