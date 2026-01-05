@@ -146,17 +146,88 @@ export type AdminRequest = {
   created_at: string;
 };
 
-export type Opportunity = {
+export type Career = {
   id: string;
-  type: 'job' | 'contest';
   title: string;
-  slug: string;
+  company: string;
+  company_logo?: string;
+  location: string;
+  type: string;
+  experience_level: string;
+  salary_range?: string;
   description: string;
   requirements: string[];
-  location: string | null;
-  deadline: string | null;
-  status: 'open' | 'closed' | 'draft';
-  external_link: string | null;
+  benefits: string[];
+  is_internal: boolean;
+  external_link?: string;
+  deadline?: string;
+  posted_at: string;
+  is_featured: boolean;
+  category: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Contest = {
+  id: string;
+  title: string;
+  slug: string;
+  category: string;
+  description: string;
+  brief: string;
+  prizes: any[];
+  judges: any[];
+  timeline: any[];
+  requirements: string[];
+  submission_guidelines: string[];
+  eligibility: string[];
+  sponsors: any[];
+  status: string;
+  entry_count: number;
+  start_date: string;
+  end_date: string;
+  results_date?: string;
+  featured_image?: string;
+  is_featured: boolean;
+  external_link?: string;
+  telegram_channel?: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Grant = {
+  id: string;
+  title: string;
+  organization: string;
+  amount_min: number;
+  amount_max: number;
+  description: string;
+  focus_areas: string[];
+  eligibility: string[];
+  requirements: string[];
+  application_process: string[];
+  deadline: string;
+  status: string;
+  external_link?: string;
+  is_featured: boolean;
+  category: string;
+  funding_type: string;
+  posted_at: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type JobApplication = {
+  id: string;
+  career_id: string;
+  name: string;
+  email: string;
+  phone: string;
+  resume_url: string | null;
+  cover_letter: string | null;
+  portfolio_url: string | null;
+  applied_at: string;
+  status: string;
   created_at: string;
   updated_at: string;
 };

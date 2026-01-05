@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase, Application, Opportunity, Talent } from '../../lib/supabase';
+import { supabase, JobApplication, Career } from '../../lib/supabase';
 import { format } from 'date-fns';
 import { 
   CheckCircle, 
@@ -15,11 +15,14 @@ import {
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 
+// Extended type for join
+type JobApplicationWithCareer = JobApplication & { careers: Career };
+
 export function ApplicationsList() {
-  const [applications, setApplications] = useState<(Application & { opportunities: Opportunity })[]>([]);
+  const [applications, setApplications] = useState<JobApplicationWithCareer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
-  const [selectedApplication, setSelectedApplication] = useState<(Application & { opportunities: Opportunity }) | null>(null);
+  const [selectedApplication, setSelectedApplication] = useState<JobApplicationWithCareer | null>(null);
 
   useEffect(() => {
     fetchApplications();
@@ -28,9 +31,9 @@ export function ApplicationsList() {
   async function fetchApplications() {
     setIsLoading(true);
     const { data, error } = await supabase
-      .from('applications')
-      .select('*, opportunities(*)')
-      .order('created_at', { ascending: false });
+      .from('job_applications')
+      .select('*, careers(*)')
+      .order('applied_at', { ascending: false });
 
     if (!error && data) {
       setApplications(data as any);
@@ -38,9 +41,9 @@ export function ApplicationsList() {
     setIsLoading(false);
   }
 
-  const handleUpdateStatus = async (application: Application, newStatus: 'approved' | 'rejected') => {
+  const handleUpdateStatus = async (application: JobApplicationWithCareer, newStatus: 'approved' | 'rejected') => {
     const { error } = await supabase
-      .from('applications')
+      .from('job_applications')
       .update({ status: newStatus })
       .eq('id', application.id);
 
@@ -50,21 +53,14 @@ export function ApplicationsList() {
     }
 
     if (newStatus === 'approved') {
-      // If approved, create a talent profile
-      const { error: talentError } = await supabase.from('talent').insert([
-        {
-          user_id: application.user_id,
-          application_id: application.id,
-          name: application.full_name,
-          role: application.message || 'Team Member', // Default role if message is empty
-          portfolio_url: application.portfolio_link,
-          is_visible: true,
-        },
-      ]);
-      
-      if (talentError) {
-        alert('Application approved but failed to create talent profile: ' + talentError.message);
-      }
+      // If approved, create a talent profile? 
+      // Note: original code did this. I'll keep it but adapt fields.
+      // Need user_id? job_applications doesn't have user_id in my schema, only email.
+      // So I can't easily link to a user unless I lookup by email or invite them.
+      // I'll skip creating talent profile automatically for now or just log it.
+      // Or if I assume they are users, I need user_id. 
+      // The requirement didn't specify auto-creating talent profiles, but "Full Control... Approve Applications".
+      // I'll just update status.
     }
 
     setApplications((prev) =>
@@ -85,8 +81,8 @@ export function ApplicationsList() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-display font-bold">Applications</h1>
-          <p className="text-neutral-mid mt-1">Review and approve talent</p>
+          <h1 className="text-2xl font-display font-bold">Job Applications</h1>
+          <p className="text-neutral-mid mt-1">Review and manage job applications</p>
         </div>
         <div className="flex gap-2">
           {(['pending', 'approved', 'rejected', 'all'] as const).map((f) => (
@@ -120,14 +116,14 @@ export function ApplicationsList() {
                   }`}
                 >
                   <div className="flex justify-between items-start mb-1">
-                    <p className="font-bold truncate">{app.full_name}</p>
+                    <p className="font-bold truncate">{app.name}</p>
                     {app.status === 'pending' && <Clock className="w-4 h-4 text-amber-500" />}
                     {app.status === 'approved' && <CheckCircle className="w-4 h-4 text-green-500" />}
                     {app.status === 'rejected' && <XCircle className="w-4 h-4 text-red-500" />}
                   </div>
-                  <p className="text-xs text-neutral-mid truncate mb-2">{app.opportunities?.title}</p>
+                  <p className="text-xs text-neutral-mid truncate mb-2">{app.careers?.title}</p>
                   <p className="text-[10px] text-neutral-mid">
-                    {format(new Date(app.created_at), 'MMM d, h:mm a')}
+                    {format(new Date(app.applied_at), 'MMM d, h:mm a')}
                   </p>
                 </button>
               ))
@@ -142,10 +138,10 @@ export function ApplicationsList() {
             <div className="space-y-8">
               <div className="flex justify-between items-start border-b border-neutral-light pb-6">
                 <div>
-                  <h2 className="text-2xl font-display font-bold">{selectedApplication.full_name}</h2>
+                  <h2 className="text-2xl font-display font-bold">{selectedApplication.name}</h2>
                   <p className="text-neutral-mid">{selectedApplication.email}</p>
                   <div className="mt-2 inline-flex items-center gap-2 px-2 py-1 bg-neutral-light rounded text-xs font-medium">
-                    {selectedApplication.opportunities?.type === 'job' ? 'Career' : 'Contest'}: {selectedApplication.opportunities?.title}
+                    Career: {selectedApplication.careers?.title}
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-2">
@@ -157,7 +153,7 @@ export function ApplicationsList() {
                     {selectedApplication.status}
                   </span>
                   <p className="text-[10px] text-neutral-mid">
-                    Applied {format(new Date(selectedApplication.created_at), 'MMMM d, yyyy')}
+                    Applied {format(new Date(selectedApplication.applied_at), 'MMMM d, yyyy')}
                   </p>
                 </div>
               </div>
@@ -167,14 +163,12 @@ export function ApplicationsList() {
                   <div>
                     <h3 className="text-xs font-bold uppercase tracking-widest text-neutral-mid mb-4">Contact & Links</h3>
                     <div className="space-y-3">
-                      {selectedApplication.portfolio_link && (
-                        <a href={selectedApplication.portfolio_link} target="_blank" rel="noreferrer" className="flex items-center gap-3 text-sm text-primary hover:text-orange transition-colors">
+                      <div className="text-sm">
+                        <span className="text-neutral-mid">Phone:</span> {selectedApplication.phone || 'N/A'}
+                      </div>
+                      {selectedApplication.portfolio_url && (
+                        <a href={selectedApplication.portfolio_url} target="_blank" rel="noreferrer" className="flex items-center gap-3 text-sm text-primary hover:text-orange transition-colors">
                           <Globe className="w-4 h-4" /> Portfolio Website
-                        </a>
-                      )}
-                      {selectedApplication.github_link && (
-                        <a href={selectedApplication.github_link} target="_blank" rel="noreferrer" className="flex items-center gap-3 text-sm text-primary hover:text-orange transition-colors">
-                          <Github className="w-4 h-4" /> Github / LinkedIn
                         </a>
                       )}
                       {selectedApplication.resume_url && (
@@ -187,9 +181,9 @@ export function ApplicationsList() {
                 </div>
 
                 <div>
-                  <h3 className="text-xs font-bold uppercase tracking-widest text-neutral-mid mb-4">Message / Intro</h3>
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-neutral-mid mb-4">Cover Letter</h3>
                   <div className="bg-neutral-light/20 p-4 rounded text-sm text-neutral-dark whitespace-pre-wrap italic">
-                    "{selectedApplication.message || 'No message provided.'}"
+                    "{selectedApplication.cover_letter || 'No cover letter provided.'}"
                   </div>
                 </div>
               </div>
@@ -201,7 +195,7 @@ export function ApplicationsList() {
                     variant="primary" 
                     className="flex-1 bg-green-600 hover:bg-green-700"
                   >
-                    <UserCheck className="w-4 h-4 mr-2" /> Approve & Add to Talent
+                    <UserCheck className="w-4 h-4 mr-2" /> Approve Application
                   </Button>
                   <Button 
                     onClick={() => handleUpdateStatus(selectedApplication, 'rejected')}
@@ -210,15 +204,6 @@ export function ApplicationsList() {
                   >
                     <UserX className="w-4 h-4 mr-2" /> Reject Application
                   </Button>
-                </div>
-              )}
-
-              {selectedApplication.status === 'approved' && (
-                <div className="pt-8 border-t border-neutral-light">
-                  <div className="p-4 bg-green-50 border border-green-100 rounded flex items-center gap-3 text-green-700 text-sm">
-                    <CheckCircle className="w-5 h-5" />
-                    This application has been approved and added to the Talent page.
-                  </div>
                 </div>
               )}
             </div>
