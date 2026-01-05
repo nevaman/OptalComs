@@ -127,7 +127,7 @@ export function Footer() {
                 <span className="text-surface/50">Serving clients worldwide</span>
               </address>
               <p className="text-sm text-surface/70 mt-4">
-                +251 91 234 5678
+                +251 93 835 2532
               </p>
             </div>
           </div>
