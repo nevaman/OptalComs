@@ -1,5 +1,5 @@
 /*
-  # Talent Profiles Schema
+  # Talent Profiles Schema  
 
   1. New Tables
     - `talent`
