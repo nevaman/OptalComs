@@ -15,7 +15,7 @@
       - `is_visible` (boolean)
       - `created_at` (timestamptz)
 
-  2. Security
+  2. Security 
     - Enable RLS
     - Public can view visible talent
     - Admins can manage all talent
